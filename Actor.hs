@@ -13,9 +13,11 @@ module Actor (
 import Control.Monad.Random
 import Control.Monad.Writer
 import Control.Monad.Reader
+import Graphics.UI.SDL (Surface)
 
 import TileMap
 import Util
+import Resource
 
 -- When actors are being updated, they can yield a list of events
 data Event = AddActor AnyActor
@@ -40,8 +42,8 @@ data UpdateState = UpdateState {
 -- Monad in which actors are updated
 type Act a = RandT DefGen (ReaderT UpdateState (Writer [Event])) a
 
-runAct :: StdGen -> UpdateState -> Act a -> ([Event], a, StdGen)
-runAct g s a = let b = runRandT a g
+runAct :: Act a -> StdGen -> UpdateState -> ([Event], a, StdGen)
+runAct a g s = let b = runRandT a g
                    c = runReaderT b s
                    ((actor, g'), evs) = runWriter c
                in (evs, actor, g') 
@@ -49,7 +51,7 @@ runAct g s a = let b = runRandT a g
 -- Actors need to be an instance of this type class
 class Show a => Actor a where
     update :: a -> Act a
-    render :: a -> IO ()
+    render :: a -> Surface -> Renderer ()
 
 data AnyActor = forall a. Actor a => AnyActor a
 
@@ -73,8 +75,7 @@ updateActors = mapActors (\(AnyActor actor) ->
     do actor' <- update actor
        return $ AnyActor actor')
 
-renderActors :: [ActorRec] -> IO ()
-renderActors acts = mapM_ f acts
+renderActors :: [ActorRec] -> Surface -> Renderer ()
+renderActors acts sur = mapM_ f acts
     where
-        f :: ActorRec -> IO ()
-        f (ActorRec id (AnyActor actor)) = render actor
+        f (ActorRec _ (AnyActor actor)) = render actor sur

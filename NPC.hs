@@ -2,9 +2,11 @@ module NPC (NPC, newNPC) where
 
 import Control.Monad
 import Control.Monad.Random
+import Graphics.UI.SDL
 
 import Actor
 import Util
+import Resource
 
 data NPC = NPC {
       pos :: Point2
@@ -22,7 +24,7 @@ instance Actor NPC where
 
                      return $ self { pos = (x', y') }
 
-    render self = undefined
+    render self sur = drawImage "npc.bmp" (pos self) sur
 
 newNPC :: Point2 -> NPC
 newNPC p = NPC { pos = p }

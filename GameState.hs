@@ -25,3 +25,4 @@ processEvents gs = foldl f gs
         f gs (RemoveActor id) = let actors = gsActors gs
                                     actors' = filter (\(ActorRec iid _) -> iid /= id) actors
                                 in gs { gsActors = actors' }
+        --f gs _ = gs -- Ignore other events, they are processed somewhere else
