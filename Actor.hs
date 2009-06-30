@@ -60,17 +60,18 @@ type ActorID = Int
 data ActorRec = ActorRec ActorID AnyActor
     deriving Show
 
-updateActors :: [ActorRec] -> Act [ActorRec]
-updateActors acts = mapM f acts
-    where
-        f :: ActorRec -> Act ActorRec
-        f (ActorRec id (AnyActor actor)) = local (\s -> s { usSelfId = id }) (update actor) >>= (\a -> return $ ActorRec id (AnyActor a))
-
-mapActors :: (ActorRec -> Act ActorRec) -> [ActorRec] -> Act [ActorRec]
+mapActors :: (AnyActor -> Act AnyActor) -> [ActorRec] -> Act [ActorRec]
 mapActors g acts = mapM f acts
     where
         f :: ActorRec -> Act ActorRec
-        f a@(ActorRec id _) = local (\s -> s { usSelfId = id }) (g a) >>= (\a -> return a)
+        f (ActorRec id actor) =
+            do actor' <- local (\s -> s { usSelfId = id }) (g actor)
+               return (ActorRec id actor')
+
+updateActors :: [ActorRec] -> Act [ActorRec]
+updateActors = mapActors (\(AnyActor actor) ->
+    do actor' <- update actor
+       return $ AnyActor actor')
 
 renderActors :: [ActorRec] -> IO ()
 renderActors acts = mapM_ f acts
