@@ -16,15 +16,15 @@ instance Actor NPC where
     update self = do x' <- getRandomR (99, 200)
                      y' <- getRandomR (100, 200)
 
-                     when (x' < 150) $
-                        evAddActor NPC { pos = (x' + 10, y' - 10) }
+                     {-when (x' < 150) $-}
+                        {-evAddActor NPC { pos = (x' + 10, y' - 10) }-}
 
-                     when (x' > 150) $
-                        evRemoveSelf
+                     {-when (x' > 150) $-}
+                        {-evRemoveSelf-}
 
                      return $ self { pos = (x', y') }
 
-    render self sur = drawImage "npc.bmp" (pos self) sur
+    render self = drawImage "npc.bmp" (pos self)
 
 newNPC :: Point2 -> NPC
 newNPC p = NPC { pos = p }
