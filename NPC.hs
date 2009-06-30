@@ -17,6 +17,9 @@ instance Actor NPC where
                      when (x' < 150) $
                         evAddActor NPC { pos = (x' + 10, y' - 10) }
 
+                     when (x' > 150) $
+                        evRemoveSelf
+
                      return $ self { pos = (x', y') }
 
     render self = undefined
