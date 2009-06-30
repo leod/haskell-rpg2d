@@ -1,4 +1,4 @@
 Main
-Main.o
-Main.hi
+*.o
+*.hi
 *.swp
