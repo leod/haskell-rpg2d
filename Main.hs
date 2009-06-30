@@ -2,12 +2,13 @@ module Main where
 
 import Data.Array
 import System.Random
-import qualified Graphics.UI.SDL as SDL
+import Graphics.UI.SDL as SDL hiding (Event)
 
 import Actor
 import TileMap
 import GameState
 import NPC
+import Resource
 
 quitHandler :: IO ()
 quitHandler = do e <- SDL.waitEvent
@@ -15,26 +16,49 @@ quitHandler = do e <- SDL.waitEvent
                     SDL.Quit -> return ()
                     otherwise -> quitHandler
                      
-main = do print actors
+data MainState = MainState {
+      msGameState :: GameState
+    , msImages :: ImageMap
+}
 
-          let (evs, actors', g) = runAct (mkStdGen 100) (UpdateState tm undefined) (updateActors actors)
-          {-print actors'-}
+mainLoop :: MainState -> Surface -> IO ()
+mainLoop mstate sur = let images = msImages mstate
+                          gstate = msGameState mstate
 
-          let gs = GameState { gsTileMap = tm, gsActors = actors', gsActorCounter = 0, gsRandom = mkStdGen 10 }
-          let gs' = processEvents gs evs
-          print $ gsActors gs'
+                          actors = gsActors gstate
+                          random = gsRandom gstate
+                          tm     = gsTileMap gstate
 
-          {-print gs-}
-          {-renderActors $ gsActors gs'-}
+                          ustate = UpdateState { usTileMap = tm, usSelfId = undefined }
+                          (evs, actors', random') = runAct (updateActors actors) random ustate
 
-          SDL.init [SDL.InitEverything]
+                          gstate' = gstate { gsActors = actors'
+                                           , gsRandom = random' }
+                      in do (_, images') <- runRenderer (renderActors actors sur) images
+                        
+                            SDL.flip sur
+                            fillRect sur Nothing (Pixel 0)
+
+                            ev <- pollEvent
+
+                            case ev of
+                                SDL.Quit -> return ()
+                                otherwise -> mainLoop mstate { msImages = images'
+                                                             , msGameState = gstate' } sur
+
+main = do SDL.init [SDL.InitEverything]
           SDL.setVideoMode 640 480 32 []
 
-          quitHandler
+          screen <- getVideoSurface
 
-          {-let (evs, actors'', g') = runAct g (UpdateState tm undefined) (updateActors actors')-}
-          {-print actors''-}
-          {-print evs-}
+          let gstate = GameState { gsTileMap = tm
+                                 , gsActors = actors
+                                 , gsActorCounter = 2
+                                 , gsRandom = mkStdGen 100 }
+              mstate = MainState { msGameState = gstate
+                                 , msImages = newImageMap }
+
+          mainLoop mstate screen
 
     where actors = [ActorRec 0 (AnyActor $ newNPC (1, 2)), ActorRec 1 (AnyActor $ newNPC (1, 2))]
           tm = array ((0, 0), (100, 100)) [((x, y), y*100+x) | x <- [0..100], y <- [0..100]]
