@@ -6,7 +6,7 @@ module Actor (
     UpdateState(UpdateState, usTileMap, usSelfId),
     Act, runAct,
     Actor(update, render),
-    ActorID, ActorRec(ActorRec), AnyActor(AnyActor),
+    ActorID, ActorList, AnyActor(AnyActor),
     updateActors, renderActors,
     ) where
 
@@ -18,10 +18,17 @@ import Graphics.UI.SDL (Surface)
 import TileMap
 import Util
 import Resource
+import IdentityList (IL)
+import qualified IdentityList as IL
 
 -- When actors are being updated, they can yield a list of events
 data Event = AddActor AnyActor
            | RemoveActor ActorID
+           | SendMessage ActorID Message ActorID -- Sender Message Receiver
+    deriving Show
+
+-- Actors can send messages to each other, this is the only way in which they can influence each other
+data Message = Impact Int Point2
     deriving Show
 
 event :: Event -> Act ()
@@ -32,6 +39,9 @@ evAddActor = event . AddActor . AnyActor
 
 evRemoveSelf :: Act ()
 evRemoveSelf = ask >>= event . RemoveActor . usSelfId
+
+evMessage :: Message -> ActorID -> Act ()
+evMessage msg to = ask >>= \us -> event $ SendMessage (usSelfId us) msg to
 
 -- Reader state for actors when updating
 data UpdateState = UpdateState {
@@ -53,29 +63,29 @@ class Show a => Actor a where
     update :: a -> Act a
     render :: a -> Surface -> Renderer ()
 
+    message :: a -> Message -> Act a
+    message a _ = return a
+
 data AnyActor = forall a. Actor a => AnyActor a
 
 instance Show AnyActor where
     show (AnyActor a) = show a
 
 type ActorID = Int
-data ActorRec = ActorRec ActorID AnyActor
-    deriving Show
+type ActorList = IL AnyActor
 
-mapActors :: (AnyActor -> Act AnyActor) -> [ActorRec] -> Act [ActorRec]
-mapActors g acts = mapM f acts
+mapActors :: (AnyActor -> Act AnyActor) -> ActorList -> Act ActorList
+mapActors g acts = IL.mapM f acts
     where
-        f :: ActorRec -> Act ActorRec
-        f (ActorRec id actor) =
-            do actor' <- local (\s -> s { usSelfId = id }) (g actor)
-               return (ActorRec id actor')
+        f :: (ActorID, AnyActor) -> Act AnyActor
+        f (id, actor) = local (\s -> s { usSelfId = id }) (g actor)
 
-updateActors :: [ActorRec] -> Act [ActorRec]
+updateActors :: ActorList -> Act ActorList
 updateActors = mapActors (\(AnyActor actor) ->
     do actor' <- update actor
        return $ AnyActor actor')
 
-renderActors :: [ActorRec] -> Surface -> Renderer ()
-renderActors acts sur = mapM_ f acts
+renderActors :: ActorList -> Surface -> Renderer ()
+renderActors acts sur = IL.mapM_ f acts
     where
-        f (ActorRec _ (AnyActor actor)) = render actor sur
+        f (_, AnyActor actor) = render actor sur
