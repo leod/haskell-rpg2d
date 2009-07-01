@@ -2,12 +2,12 @@
 
 module Actor (
     Event(AddActor, RemoveActor, SendMessage),
-    evAddActor, evRemoveSelf,
+    evAddActor, evRemoveSelf, evMessage,
     Message(Impact),
     MessageRec,
     UpdateState(UpdateState, usTileMap, usSelfId),
     Act, runAct,
-    Actor(update, render),
+    Actor(update, render, message),
     ActorID, ActorList, AnyActor(AnyActor),
     updateActors, renderActors, dispatchMessages
     ) where
@@ -45,8 +45,8 @@ evAddActor = event . AddActor . AnyActor
 evRemoveSelf :: Act ()
 evRemoveSelf = ask >>= event . RemoveActor . usSelfId
 
-evMessage :: Message -> ActorID -> Act ()
-evMessage msg to = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us) to msg 
+evMessage :: ActorID -> Message -> Act ()
+evMessage to msg = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us) to msg 
 
 -- Reader state for actors when updating
 data UpdateState = UpdateState {
@@ -79,11 +79,14 @@ instance Show AnyActor where
 type ActorID = Int
 type ActorList = IL AnyActor
 
+withSelfId :: ActorID -> Act a -> Act a
+withSelfId id = local (\s -> s { usSelfId = id })
+
 mapActors :: (AnyActor -> Act AnyActor) -> ActorList -> Act ActorList
 mapActors g acts = IL.mapM f acts
     where
         f :: (ActorID, AnyActor) -> Act AnyActor
-        f (id, actor) = local (\s -> s { usSelfId = id }) (g actor)
+        f (id, actor) = withSelfId id (g actor)
 
 updateActors :: ActorList -> Act ActorList
 updateActors = mapActors (\(AnyActor actor) ->
@@ -97,7 +100,7 @@ dispatchMessages msgs actors = foldl f (return actors) msgs
         f mlist (MessageRec from to msg) = do list <- mlist
                                               case to `IL.lookup` list of
                                                   (Just (AnyActor actor)) -> do
-                                                      actor' <- message actor msg
+                                                      actor' <- withSelfId to (message actor msg)
                                                       return $ IL.update to (AnyActor actor') list
 
 

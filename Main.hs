@@ -45,7 +45,7 @@ mainLoop mstate sur = let images = msImages mstate
 
                           gstate'' = processEvents gstate' evs
 
-                      in do (_, images') <- runRenderer (renderActors actors sur) images
+                      in do ((), images') <- runRenderer (renderActors actors sur) images
                         
                             SDL.flip sur
                             fillRect sur Nothing (Pixel 0)
