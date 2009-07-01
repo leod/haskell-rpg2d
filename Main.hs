@@ -11,6 +11,14 @@ import NPC
 import Resource
 import qualified IdentityList as IL
 
+processEvents :: GameState -> [Event] -> GameState
+processEvents gs = foldl f gs
+    where
+        f :: GameState -> Event -> GameState
+        f gs (AddActor a) = gs { gsActors = a `IL.insert` gsActors gs  }
+        f gs (RemoveActor id) = gs { gsActors = id `IL.delete` gsActors gs }
+        f gs (SendMessage msg) = gs { gsMessages = msg : gsMessages gs }
+
 data MainState = MainState {
       msGameState :: GameState
     , msImages :: ImageMap
@@ -23,14 +31,17 @@ mainLoop mstate sur = let images = msImages mstate
                           actors = gsActors gstate
                           random = gsRandom gstate
                           tm     = gsTileMap gstate
+                          msgs   = gsMessages gstate
 
-                          -- Update actors
+                          -- Dispatch messages from last frame, update actors
                           ustate = UpdateState { usTileMap = tm, usSelfId = undefined }
-                          (evs, actors', random') = runAct (updateActors actors) random ustate
+                          mup    = dispatchMessages msgs actors >>= updateActors
+                          (evs, actors', random') = runAct mup random ustate
 
                           -- Process events
                           gstate' = gstate { gsActors = actors'
-                                           , gsRandom = random' }
+                                           , gsRandom = random'
+                                           , gsMessages = [] }
 
                           gstate'' = processEvents gstate' evs
 
@@ -53,7 +64,8 @@ main = do SDL.init [SDL.InitEverything]
 
           let gstate = GameState { gsTileMap = tm
                                  , gsActors = actors
-                                 , gsRandom = mkStdGen 100 }
+                                 , gsRandom = mkStdGen 100
+                                 , gsMessages = [] }
               mstate = MainState { msGameState = gstate
                                  , msImages = newImageMap }
 

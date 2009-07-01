@@ -1,13 +1,15 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Actor (
-    Event(AddActor, RemoveActor), -- Should be abstract, but needed to pattern-match by GameState
+    Event(AddActor, RemoveActor, SendMessage), -- Should be abstract, but needed to pattern-match by GameState
     evAddActor, evRemoveSelf,
+    Message(Impact),
+    MessageRec,
     UpdateState(UpdateState, usTileMap, usSelfId),
     Act, runAct,
     Actor(update, render),
     ActorID, ActorList, AnyActor(AnyActor),
-    updateActors, renderActors,
+    updateActors, renderActors, dispatchMessages
     ) where
 
 import Control.Monad.Random
@@ -24,11 +26,14 @@ import qualified IdentityList as IL
 -- When actors are being updated, they can yield a list of events
 data Event = AddActor AnyActor
            | RemoveActor ActorID
-           | SendMessage ActorID Message ActorID -- Sender Message Receiver
+           | SendMessage MessageRec
     deriving Show
 
 -- Actors can send messages to each other, this is the only way in which they can influence each other
 data Message = Impact Int Point2
+    deriving Show
+
+data MessageRec = MessageRec ActorID ActorID Message -- Sender Receiver Message
     deriving Show
 
 event :: Event -> Act ()
@@ -41,7 +46,7 @@ evRemoveSelf :: Act ()
 evRemoveSelf = ask >>= event . RemoveActor . usSelfId
 
 evMessage :: Message -> ActorID -> Act ()
-evMessage msg to = ask >>= \us -> event $ SendMessage (usSelfId us) msg to
+evMessage msg to = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us) to msg 
 
 -- Reader state for actors when updating
 data UpdateState = UpdateState {
@@ -84,6 +89,17 @@ updateActors :: ActorList -> Act ActorList
 updateActors = mapActors (\(AnyActor actor) ->
     do actor' <- update actor
        return $ AnyActor actor')
+
+dispatchMessages :: [MessageRec] -> ActorList -> Act ActorList
+dispatchMessages msgs actors = foldl f (return actors) msgs 
+    where
+        f :: Act ActorList -> MessageRec -> Act ActorList 
+        f mlist (MessageRec from to msg) = do list <- mlist
+                                              case to `IL.lookup` list of
+                                                  (Just (AnyActor actor)) -> do
+                                                      actor' <- message actor msg
+                                                      return $ IL.update to (AnyActor actor') list
+
 
 renderActors :: ActorList -> Surface -> Renderer ()
 renderActors acts sur = IL.mapM_ f acts
