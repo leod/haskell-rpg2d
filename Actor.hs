@@ -8,7 +8,7 @@ module Actor (
     UpdateState(UpdateState, usTileMap, usSelfId),
     Act, runAct,
     Actor(update, render, message),
-    ActorID, ActorList, AnyActor(AnyActor),
+    ActorId, ActorList, AnyActor(AnyActor),
     updateActors, renderActors, dispatchMessages
     ) where
 
@@ -25,7 +25,7 @@ import qualified IdentityList as IL
 
 -- When actors are being updated, they can yield a list of events
 data Event = AddActor AnyActor
-           | RemoveActor ActorID
+           | RemoveActor ActorId
            | SendMessage MessageRec
     deriving Show
 
@@ -33,7 +33,7 @@ data Event = AddActor AnyActor
 data Message = Impact Int Point2
     deriving Show
 
-data MessageRec = MessageRec ActorID ActorID Message -- Sender Receiver Message
+data MessageRec = MessageRec ActorId ActorId Message -- Sender Receiver Message
     deriving Show
 
 event :: Event -> Act ()
@@ -45,13 +45,13 @@ evAddActor = event . AddActor . AnyActor
 evRemoveSelf :: Act ()
 evRemoveSelf = ask >>= event . RemoveActor . usSelfId
 
-evMessage :: ActorID -> Message -> Act ()
+evMessage :: ActorId -> Message -> Act ()
 evMessage to msg = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us) to msg 
 
 -- Reader state for actors when updating
 data UpdateState = UpdateState {
       usTileMap :: TileMap
-    , usSelfId :: ActorID
+    , usSelfId :: ActorId
 }
 
 -- Monad in which actors are updated
@@ -76,16 +76,16 @@ data AnyActor = forall a. Actor a => AnyActor a
 instance Show AnyActor where
     show (AnyActor a) = show a
 
-type ActorID = Int
+type ActorId = Int
 type ActorList = IL AnyActor
 
-withSelfId :: ActorID -> Act a -> Act a
+withSelfId :: ActorId -> Act a -> Act a
 withSelfId id = local (\s -> s { usSelfId = id })
 
 mapActors :: (AnyActor -> Act AnyActor) -> ActorList -> Act ActorList
 mapActors g acts = IL.mapM f acts
     where
-        f :: (ActorID, AnyActor) -> Act AnyActor
+        f :: (ActorId, AnyActor) -> Act AnyActor
         f (id, actor) = withSelfId id (g actor)
 
 updateActors :: ActorList -> Act ActorList
