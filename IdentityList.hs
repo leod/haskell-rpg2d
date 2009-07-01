@@ -2,6 +2,7 @@ module IdentityList (IL,
                      empty,
                      insert,
                      delete,
+                     update,
                      IdentityList.map,
                      IdentityList.lookup,
                      IdentityList.mapM,
@@ -62,3 +63,9 @@ mapM_ f il = IdentityList.sequence_ (IdentityList.map f il)
 
 lookup :: ILKey -> IL a -> Maybe a
 lookup k (IL _ as) = Prelude.lookup k as
+
+update :: ILKey -> a -> IL a -> IL a
+update k x = IdentityList.map f
+    where
+        f (k', x') | k == k'   = x
+                   | otherwise = x'
