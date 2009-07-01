@@ -71,6 +71,5 @@ main = do SDL.init [SDL.InitEverything]
 
           mainLoop mstate screen
 
-    where --actors = [ActorRec 0 (AnyActor $ newNPC (1, 2)), ActorRec 1 (AnyActor $ newNPC (1, 2))]
-          actors = (AnyActor $ newNPC (1, 2)) `IL.insert` IL.empty
+    where actors = (AnyActor $ newNPC (50, 100)) `IL.insert` ((AnyActor $ newNPC (0, 0)) `IL.insert` IL.empty)
           tm = array ((0, 0), (100, 100)) [((x, y), y*100+x) | x <- [0..100], y <- [0..100]]

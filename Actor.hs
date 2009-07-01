@@ -1,7 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Actor (
-    Event(AddActor, RemoveActor, SendMessage), -- Should be abstract, but needed to pattern-match by GameState
+    Event(AddActor, RemoveActor, SendMessage),
     evAddActor, evRemoveSelf,
     Message(Impact),
     MessageRec,
