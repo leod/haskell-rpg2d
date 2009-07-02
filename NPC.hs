@@ -7,12 +7,11 @@ import Graphics.UI.SDL
 
 import Actor
 import Util
-import Resource
+import Render
 
-data NPC = NPC {
-      pos :: Point2
-    , vel :: Point2
-} deriving Show
+data NPC = NPC { pos :: Point2
+               , vel :: Point2
+               } deriving Show
 
 instance Actor NPC where
     update self = do let pos' = pos self ^+ vel self 
@@ -25,9 +24,10 @@ instance Actor NPC where
                         evMessage selfId $ Impact 200 (1, 2)
 
                      return $ self { pos = pos'
-                                   , vel = vel' }
+                                   , vel = vel'
+                                   }
 
-    render self = drawImage "npc.bmp" (pos self)
+    render self sprs = sprite (getSprite "npc.bmp" sprs) (pos self)
 
     message self (Impact dmg vel) = evRemoveSelf >> return self
 

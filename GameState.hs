@@ -7,10 +7,8 @@ import Util
 import TileMap
 import qualified IdentityList as IL
 
-data GameState = GameState {
-      gsTileMap :: TileMap
-    , gsActors :: ActorList
-    , gsRandom :: DefGen
-    , gsMessages :: [MessageRec]
-} deriving Show
-
+data GameState = GameState { gsTileMap :: TileMap
+                           , gsActors :: ActorList
+                           , gsRandom :: DefGen
+                           , gsMessages :: [MessageRec]
+                           } deriving Show
