@@ -1,15 +1,15 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Actor (
-    Event(AddActor, RemoveActor, SendMessage),
-    evAddActor, evRemoveSelf, evMessage,
-    Message(Impact),
-    MessageRec,
-    UpdateState(UpdateState, usTileMap, usSelfId),
-    Act, runAct,
-    Actor(update, render, message),
-    ActorId, ActorList, AnyActor(AnyActor),
-    updateActors, renderActors, dispatchMessages
+module Actor
+    ( Event(AddActor, RemoveActor, SendMessage)
+    , evAddActor, evRemoveSelf, evMessage
+    , Message(Impact)
+    , MessageRec
+    , UpdateState(UpdateState, usTileMap, usSelfId)
+    , Act, runAct
+    , Actor(update, render, message)
+    , ActorId, ActorList, AnyActor(AnyActor)
+    , updateActors, renderActors, dispatchMessages
     ) where
 
 import Control.Monad.Random
@@ -19,7 +19,7 @@ import Graphics.UI.SDL (Surface)
 
 import TileMap
 import Util
-import Resource
+import Render
 import IdentityList (IL)
 import qualified IdentityList as IL
 
@@ -49,10 +49,9 @@ evMessage :: ActorId -> Message -> Act ()
 evMessage to msg = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us) to msg 
 
 -- Reader state for actors when updating
-data UpdateState = UpdateState {
-      usTileMap :: TileMap
-    , usSelfId :: ActorId
-}
+data UpdateState = UpdateState { usTileMap :: TileMap
+                               , usSelfId :: ActorId -- The Id of the actor currently being updated. Not sure if this should be passed as a parameter to update instead...
+                               }
 
 -- Monad in which actors are updated
 type Act a = RandT DefGen (ReaderT UpdateState (Writer [Event])) a
@@ -66,7 +65,7 @@ runAct a g s = let b = runRandT a g
 -- Actors need to be an instance of this type class
 class Show a => Actor a where
     update :: a -> Act a
-    render :: a -> Surface -> Renderer ()
+    render :: a -> SpriteMap -> IO ()
 
     message :: a -> Message -> Act a
     message a _ = return a
@@ -104,7 +103,7 @@ dispatchMessages msgs actors = foldl f (return actors) msgs
                                                       return $ IL.update to (AnyActor actor') list
 
 
-renderActors :: ActorList -> Surface -> Renderer ()
-renderActors acts sur = IL.mapM_ f acts
+renderActors :: ActorList -> SpriteMap -> IO ()
+renderActors acts sprs = IL.mapM_ f acts
     where
-        f (_, AnyActor actor) = render actor sur
+        f (_, AnyActor actor) = render actor sprs
