@@ -1,12 +1,13 @@
 module Render (Sprite, surfaceToSprite, sprite, SpriteMap, newSpriteMap, addSprite, getSprite) where
 
 import Data.Map (Map)
+import Control.Monad
 import qualified Data.Map as Map
-import Control.Monad.State.Strict
 import System.Mem.Weak
 import Graphics.UI.SDL as SDL
 import Graphics.UI.SDL.Image as Image
 import Graphics.Rendering.OpenGL.GL as GL
+import Graphics.Rendering.OpenGL.GLU as GLU
 
 import Util
 
@@ -60,8 +61,8 @@ surfaceToSprite surf = do
     surf' <- padSurface surf
 
     [tex@(GL.TextureObject b)] <- GL.genObjectNames 1
-    --isGood <- GL.isObjectName tex
-    --unless isGood $ fail "WUT"
+    {-isGood <- GL.isObjectName tex-}
+    {-unless isGood $ fail "WUT"-}
 
     oldTex <- GL.get (GL.textureBinding GL.Texture2D)
     GL.textureBinding GL.Texture2D $= Just tex
@@ -92,8 +93,8 @@ surfaceToSprite surf = do
     let sprite = Sprite { sprObject = tex
                         , sprWidthRatio  = fromIntegral w / fromIntegral w'
                         , sprHeightRatio = fromIntegral h / fromIntegral h'
-                        , sprWidth  = fromIntegral w
-                        , sprHeight = fromIntegral h
+                        , sprWidth  = (fromIntegral w / fromIntegral w) * fromIntegral w
+                        , sprHeight = (fromIntegral h / fromIntegral w) * fromIntegral h
                         }
 
     addFinalizer sprite $ do
@@ -107,9 +108,11 @@ loadSprite path = Image.load path >>= surfaceToSprite
 sprite :: Sprite -> Point2 -> IO ()
 sprite spr (ox, oy) = do
     oldTex <- GL.get (GL.textureBinding GL.Texture2D)
+    GL.textureBinding GL.Texture2D $= (Just $ sprObject spr)
+    GL.texture GL.Texture2D $= GL.Enabled
 
     GL.preservingMatrix $ do
-        translate $ Vector3 (fromIntegral ox) (fromIntegral oy) (0 :: Double)
+        GL.translate $ Vector3 (fromIntegral ox) (fromIntegral oy) (0 :: Double)
 
         GL.renderPrimitive GL.Quads $ do
             let (x, y) = (0.5 * sprWidth spr, 0.5 * sprWidth spr)

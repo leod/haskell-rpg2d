@@ -66,12 +66,15 @@ mainLoop mstate =
 
         GL.matrixMode $= GL.Projection
         GL.loadIdentity
-        GL.ortho 0 640 480 0 0 1337
+        GL.ortho 0 640 0 480 0 1
 
         GL.matrixMode $= GL.Modelview 0
         GL.loadIdentity
 
         renderActors actors' sprites'
+
+        let spr = getSprite "tilemap.bmp" sprites'
+        sprite spr (200, 300)
       
         glSwapBuffers
         ev <- pollEvent
