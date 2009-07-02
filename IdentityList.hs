@@ -10,6 +10,8 @@ module IdentityList (IL,
                      IdentityList.mapM_,
                      IdentityList.sequence_) where
 
+import Control.Monad
+
 type ILKey = Int
 
 -- Descending order
@@ -38,17 +40,10 @@ map :: ((ILKey, a) -> b) -> IL a -> IL b
 map f (IL k as) =
     IL k [(k, f a) | a@(k, _) <- as]
 
--- no idea if those are correct
-sequence :: (Monad m) => IL (m a) -> m (IL a)
-sequence (IL k as) = (f as) >>= \vs -> return $ IL k vs
-    where
-        f :: (Monad m) => [(ILKey, m a)] -> m [(ILKey, a)]
-        f [] = return []
-        f ((k, x):xs) = do v <- x
-                           vs <- f xs
-                           return ((k, v):vs) 
+--sequence :: (Monad m) => IL (m a) -> m (IL a)
+sequence (IL k as) = Prelude.mapM (\(k, v) -> liftM ((,) k) v) as >>= \vs -> return $ IL k vs
 
-mapM :: (Monad m) => ((ILKey, a) -> m b) -> IL a -> m (IL b)
+mapM :: (Functor m, Monad m) => ((ILKey, a) -> m b) -> IL a -> m (IL b)
 mapM f il = IdentityList.sequence (IdentityList.map f il)
 
 sequence_ :: (Monad m) => IL (m a) -> m ()

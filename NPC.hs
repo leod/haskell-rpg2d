@@ -19,9 +19,9 @@ instance Actor NPC where
                                 else if px pos' < 0 then (1, 0)
                                 else vel self
 
-                     selfId <- asks usSelfId
-                     when (px pos' > 640) $
-                        evMessage selfId $ Impact 200 (1, 2)
+                     {-selfId <- asks usSelfId-}
+                     {-when (px pos' > 640) $-}
+                        {-evMessage selfId $ Impact 200 (1, 2)-}
 
                      return $ self { pos = pos'
                                    , vel = vel'
