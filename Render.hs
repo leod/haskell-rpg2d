@@ -35,7 +35,7 @@ data Sprite = Sprite { sprObject :: GL.TextureObject
                      -- Ratio surface/padded surface
                      , sprWidthRatio :: Double
                      , sprHeightRatio :: Double
-                     }
+                     } deriving Show
 
 nextPowerOf2 x = head $ dropWhile (< x) $ iterate (* 2) 1
 
@@ -62,7 +62,6 @@ surfaceToSprite surf = do
     [tex@(GL.TextureObject b)] <- GL.genObjectNames 1
     --isGood <- GL.isObjectName tex
     --unless isGood $ fail "WUT"
-    print "yo"
 
     oldTex <- GL.get (GL.textureBinding GL.Texture2D)
     GL.textureBinding GL.Texture2D $= Just tex
@@ -109,51 +108,20 @@ sprite :: Sprite -> Point2 -> IO ()
 sprite spr (ox, oy) = do
     oldTex <- GL.get (GL.textureBinding GL.Texture2D)
 
-    GL.renderPrimitive GL.Quads $ do
-        let (x, y) = (fromIntegral ox + 0.5 * sprWidth spr, fromIntegral oy +0.5 * sprWidth spr)
-            (tx, ty) = (sprWidthRatio spr, sprHeightRatio spr)
+    GL.preservingMatrix $ do
+        translate $ Vector3 (fromIntegral ox) (fromIntegral oy) (0 :: Double)
 
-        GL.texCoord $ GL.TexCoord2 0 (0 :: Double)
-        GL.vertex   $ GL.Vertex2 (-x) y
-        GL.texCoord $ GL.TexCoord2 tx 0
-        GL.vertex   $ GL.Vertex2 x y
-        GL.texCoord $ GL.TexCoord2 tx ty
-        GL.vertex   $ GL.Vertex2 x (-y)
-        GL.texCoord $ GL.TexCoord2 0 ty
-        GL.vertex   $ GL.Vertex2 (-x) (-y)
+        GL.renderPrimitive GL.Quads $ do
+            let (x, y) = (0.5 * sprWidth spr, 0.5 * sprWidth spr)
+                (tx, ty) = (sprWidthRatio spr, sprHeightRatio spr)
+
+            GL.texCoord $ GL.TexCoord2 0 (0 :: Double)
+            GL.vertex   $ GL.Vertex2 (-x) y
+            GL.texCoord $ GL.TexCoord2 tx 0
+            GL.vertex   $ GL.Vertex2 x y
+            GL.texCoord $ GL.TexCoord2 tx ty
+            GL.vertex   $ GL.Vertex2 x (-y)
+            GL.texCoord $ GL.TexCoord2 0 ty
+            GL.vertex   $ GL.Vertex2 (-x) (-y)
 
     GL.textureBinding GL.Texture2D $= oldTex
-
-----------------------------------------------------------------------------------------------------------
-
-{-type ResId = String-}
-{-type ResMap a = Map ResId a-}
-
-{-type ImageMap = ResMap Surface-}
-
-{-type Renderer a = StateT ImageMap IO a-}
-
-{-newImageMap :: ImageMap-}
-{-newImageMap = Map.empty-}
-{-image :: ResId -> Renderer Surface-}
-{-image name = do res <- get-}
-                {-case name `Map.lookup` res of-}
-                    {-(Just a) -> return a-}
-                    {-Nothing -> do surface <- liftIO $ loadBMP name-}
-                                  {-put (Map.insert name surface res)-}
-                                  {-return surface-}
-
-{-drawImageClipped_ :: Surface -> Point2 -> Rect -> Surface -> Renderer ()-}
-{-drawImageClipped_ img (x, y) clip sur = liftIO $ blitSurface img (Just clip) sur (Just $ Rect x y 0 0) >>-}
-                                        {-return ()-}
-
-{-drawImageClipped name p clip sur = do img <- image name-}
-                                      {-drawImageClipped_ img p clip sur-}
-
-{-drawImage :: ResId -> Point2 -> Surface ->  Renderer ()-}
-{-drawImage name (x, y) sur = do img <- image name-}
-                               {-b <- liftIO $ blitSurface img Nothing sur (Just $ Rect x y 0 0)-}
-                               {-return ()-}
-
-{-runRenderer :: Renderer a -> ImageMap -> IO (a, ImageMap)-}
-{-runRenderer r = runStateT r-}
