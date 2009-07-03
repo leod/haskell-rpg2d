@@ -1,4 +1,4 @@
-module Render (Sprite, surfaceToSprite, sprite, SpriteMap, newSpriteMap, addSprite, getSprite) where
+module Render (Sprite, surfaceToSprite, spriteClipped, sprite, SpriteMap, newSpriteMap, addSprite, getSprite, sprTexture, sprWidth, sprHeight, sprWidthRatio, sprHeightRatio, withTexture) where
 
 import Data.Map (Map)
 import Control.Monad
@@ -29,7 +29,7 @@ getSprite name map = let (Just spr) = name `Map.lookup` map
 
 -- The following is taken mostly from Graphics.DrawingCombinators
 
-data Sprite = Sprite { sprObject :: GL.TextureObject
+data Sprite = Sprite { sprTexture :: GL.TextureObject
                      , sprWidth :: Double
                      , sprHeight :: Double 
 
@@ -90,7 +90,7 @@ surfaceToSprite surf = do
     let (w, w') = (SDL.surfaceGetWidth  surf, SDL.surfaceGetWidth  surf')
         (h, h') = (SDL.surfaceGetHeight surf, SDL.surfaceGetHeight surf') 
 
-    let sprite = Sprite { sprObject = tex
+    let sprite = Sprite { sprTexture = tex
                         , sprWidthRatio  = fromIntegral w / fromIntegral w'
                         , sprHeightRatio = fromIntegral h / fromIntegral h'
                         , sprWidth  = (fromIntegral w / fromIntegral w) * fromIntegral w
@@ -98,33 +98,51 @@ surfaceToSprite surf = do
                         }
 
     addFinalizer sprite $ do
-        GL.deleteObjectNames [sprObject sprite]
+        GL.deleteObjectNames [sprTexture sprite]
 
     return sprite
 
 loadSprite :: FilePath -> IO Sprite
 loadSprite path = Image.load path >>= surfaceToSprite
 
-sprite :: Sprite -> Point2 -> IO ()
-sprite spr (ox, oy) = do
-    oldTex <- GL.get (GL.textureBinding GL.Texture2D)
-    GL.textureBinding GL.Texture2D $= (Just $ sprObject spr)
+withTexture :: GL.TextureObject -> IO a -> IO a
+withTexture tex act = do
     GL.texture GL.Texture2D $= GL.Enabled
+    GL.textureBinding GL.Texture2D $= (Just tex) 
+    act
 
+withTranslate :: Point2 -> IO a -> IO a
+withTranslate (x, y) act = do
     GL.preservingMatrix $ do
-        GL.translate $ Vector3 (fromIntegral ox) (fromIntegral oy) (0 :: Double)
+        GL.translate $ Vector3 (fromIntegral x) (fromIntegral y) (0 :: Double)
+        act
 
-        GL.renderPrimitive GL.Quads $ do
-            let (x, y) = (0.5 * sprWidth spr, 0.5 * sprWidth spr)
-                (tx, ty) = (sprWidthRatio spr, sprHeightRatio spr)
+spriteClipped :: Sprite -> Point2 -> Point2 -> Point2 -> IO ()
+spriteClipped spr p (cx, cy) (cw, ch) =
+    withTexture (sprTexture spr) $ withTranslate p $ GL.renderPrimitive GL.Quads $ do
+        let (w, h) = (fromIntegral cw, fromIntegral ch) :: (Double, Double)
+            (tx, ty) = (sprWidthRatio spr * ((fromIntegral cx) / (sprWidth spr)),
+                        sprHeightRatio spr * ((fromIntegral cy) / (sprHeight spr)))
+            (tw, th) = (sprWidthRatio spr * ((fromIntegral cw) / (sprWidth spr)),
+                        sprHeightRatio spr * ((fromIntegral ch) / (sprHeight spr)))
 
-            GL.texCoord $ GL.TexCoord2 0 (0 :: Double)
-            GL.vertex   $ GL.Vertex2 (-x) y
-            GL.texCoord $ GL.TexCoord2 tx 0
-            GL.vertex   $ GL.Vertex2 x y
-            GL.texCoord $ GL.TexCoord2 tx ty
-            GL.vertex   $ GL.Vertex2 x (-y)
-            GL.texCoord $ GL.TexCoord2 0 ty
-            GL.vertex   $ GL.Vertex2 (-x) (-y)
+--        print p
+--        print (sprWidthRatio spr, sprHeightRatio spr)
+--        print (tx, ty)
+--        print (tw, th)
+--        print "---"
 
-    GL.textureBinding GL.Texture2D $= oldTex
+        GL.texCoord $ GL.TexCoord2 tx ty
+        GL.vertex   $ GL.Vertex2 0 (0 :: Double)
+
+        GL.texCoord $ GL.TexCoord2 (tw+tx) tx
+        GL.vertex   $ GL.Vertex2 w 0
+
+        GL.texCoord $ GL.TexCoord2 (tw+tx) (th+ty)
+        GL.vertex   $ GL.Vertex2 w h
+
+        GL.texCoord $ GL.TexCoord2 tx (th+ty)
+        GL.vertex   $ GL.Vertex2 0 h
+
+sprite :: Sprite -> Point2 -> IO ()
+sprite spr p = spriteClipped spr p (0, 0) (truncate $ sprWidth spr, truncate $ sprHeight spr)
