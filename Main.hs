@@ -28,7 +28,7 @@ data MainState = MainState { msGameState :: GameState
                            , msSprites :: SpriteMap
                            }
 
-updateGS :: GameState -> GameState
+updateGS :: GameState -> (GameState, IO ())
 updateGS gs =
     let actors = gsActors gs
         random = gsRandom gs
@@ -41,14 +41,15 @@ updateGS gs =
                              }
         act = dispatchMessages actors msgs >>= updateActors >>= collisions
         (actors', !random', evs) = runAct act random ustate
-      
+
         -- Process events
         gs' = gs { gsActors = actors', gsRandom = random' }
                   `processEvents` evs
-    in gs'
+    in (gs', print evs)
 
 renderMS :: MainState -> IO ()
 renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
+    {-print $ gsActors gs-}
     GL.clear [GL.ColorBuffer]
 
     GL.matrixMode $= GL.Projection
@@ -67,7 +68,7 @@ mainLoop :: MainState -> (Word32, Int) -> IO ()
 mainLoop mstate (time, frames) = 
     let sprites = msSprites mstate
 
-        gstate = updateGS $ msGameState mstate
+        (gstate, io) = updateGS $ msGameState mstate
         mstate' = mstate { msGameState = gstate }
 
         actors = gsActors gstate
@@ -75,6 +76,8 @@ mainLoop mstate (time, frames) =
         tm     = gsTileMap gstate
         msgs   = gsMessages gstate
     in do
+        {-io-}
+
         renderMS mstate'
 
         time' <- getTicks
@@ -85,7 +88,7 @@ mainLoop mstate (time, frames) =
         let frmCtr = if (time' - time) > 1000
                      then (time', 0)
                      else (time, frames+1)
-        {-delay 10-}
+        delay 10
       
         ev <- SDL.pollEvent
         case ev of
@@ -101,9 +104,11 @@ main = do
 
     sprs <- (newSpriteMap `addSprite` "test2.png") >>= (`addSprite` "npc.bmp")
 
+    randInit <- randomIO
+
     let gstate = GameState { gsTileMap = tm
                            , gsActors = actors
-                           , gsRandom = mkStdGen 100
+                           , gsRandom = mkStdGen randInit
                            , gsMessages = []
                            }
         mstate = MainState { msGameState = gstate
@@ -111,5 +116,5 @@ main = do
                            }
     mainLoop mstate (0, 0)
 
-    where actors = (AnyActor $ newNPC (480, 280) (-1, 0)) `IL.insert` ((AnyActor $ newNPC (100, 300) (1, 0)) `IL.insert` IL.empty)
+    where actors = ((newNPC (480, 280) (-1, 0)) `IL.insert` ((newNPC (100, 300) (1, 0)) `IL.insert` IL.empty))
           tm = array ((0, 0), (40, 30)) [((x, y), y*10+x) | x <- [0..40], y <- [0..30]]

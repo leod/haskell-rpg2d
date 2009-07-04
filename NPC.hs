@@ -1,5 +1,6 @@
 module NPC (NPC, newNPC) where
 
+import System.IO.Unsafe
 import Control.Monad
 import Control.Monad.Random
 import Control.Monad.Reader
@@ -34,7 +35,17 @@ instance Actor NPC where
 
     posRect NPC { pos = (x, y) } = Rect x y 50 50
 
-    collision self (oid, _) = evRemoveSelf >> evMessage oid (Impact 200 (1,2)) >> return self
+    collision self (oid, _) = do
+        evRemoveSelf
+        evMessage oid (Impact 200 (1,2)) 
 
-newNPC :: Point2 -> Point2 -> NPC
-newNPC p v = NPC { pos = p, vel = v }
+        nx <- getRandomR (100, 200)
+        ny <- getRandomR (100, 200)
+        nvx <- getRandomR (-1, 1)
+
+        evAddActor $ newNPC (nx, ny) (nvx, 0)
+                                 
+        return self
+
+newNPC :: Point2 -> Point2 -> AnyActor
+newNPC p v = AnyActor $ NPC { pos = p, vel = v }

@@ -34,7 +34,7 @@ delete k (IL nk as) =
     where
         f [] = []
         f as@(a@(k', _) : ks) | k > k'    = as
-                              | k == k    = ks
+                              | k == k'   = ks
                               | otherwise = a : f ks
 
 foldl :: (a -> (ILKey, b) -> a) -> a -> IL b -> a
