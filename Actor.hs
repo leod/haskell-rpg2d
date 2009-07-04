@@ -7,7 +7,7 @@ module Actor
     , MessageRec
     , UpdateState(UpdateState, usTileMap, usSelfId)
     , Act, runAct
-    , Actor(update, render, message)
+    , Actor(neededResources, update, render, message)
     , ActorId, ActorList, AnyActor(AnyActor)
     , updateActors, renderActors, dispatchMessages
     ) where
@@ -56,14 +56,16 @@ data UpdateState = UpdateState { usTileMap :: TileMap
 -- Monad in which actors are updated
 type Act a = RandT DefGen (ReaderT UpdateState (Writer [Event])) a
 
-runAct :: Act a -> StdGen -> UpdateState -> ([Event], a, StdGen)
+runAct :: Act a -> StdGen -> UpdateState -> (a, StdGen, [Event])
 runAct a g s = let b = runRandT a g
                    c = runReaderT b s
                    ((actor, g'), evs) = runWriter c
-               in (evs, actor, g') 
+               in (actor, g', evs) 
 
 -- Actors need to be an instance of this type class
 class Show a => Actor a where
+    neededResources :: a -> [FilePath]
+
     update :: a -> Act a
     render :: a -> SpriteMap -> IO ()
 

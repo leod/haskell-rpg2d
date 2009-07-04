@@ -1,4 +1,4 @@
-module Render (Sprite, surfaceToSprite, spriteClipped, sprite, SpriteMap, newSpriteMap, addSprite, getSprite, sprTexture, sprWidth, sprHeight, sprWidthRatio, sprHeightRatio, withTexture) where
+module Render (Sprite, surfaceToSprite, spriteClipped, sprite, SpriteMap, newSpriteMap, addSprites, addSprite, getSprite, sprTexture, sprWidth, sprHeight, sprWidthRatio, sprHeightRatio, withTexture) where
 
 import Data.Map (Map)
 import Control.Monad
@@ -16,15 +16,18 @@ type SpriteMap = Map String Sprite
 newSpriteMap :: SpriteMap
 newSpriteMap = Map.empty
 
-addSprite :: String -> SpriteMap -> IO SpriteMap
-addSprite name map =
+addSprite :: SpriteMap -> String -> IO SpriteMap
+addSprite map name =
     case name `Map.lookup` map of
         Just _ -> return map                  
         Nothing -> do spr <- loadSprite name
                       return $ Map.insert name spr map 
 
+addSprites :: SpriteMap -> [String] -> IO SpriteMap
+addSprites map names = foldM addSprite map names
+
 getSprite :: String -> SpriteMap -> Sprite
-getSprite name map = let (Just spr) = name `Map.lookup` map
+getSprite name map = let spr = maybe (error name) id $ name `Map.lookup` map
                      in spr
 
 -- The following is taken mostly from Graphics.DrawingCombinators
@@ -103,7 +106,7 @@ surfaceToSprite surf = do
     return sprite
 
 loadSprite :: FilePath -> IO Sprite
-loadSprite path = Image.load path >>= surfaceToSprite
+loadSprite path = (putStrLn $ "loading " ++ path) >> Image.load path >>= surfaceToSprite
 
 withTexture :: GL.TextureObject -> IO a -> IO a
 withTexture tex act = do
