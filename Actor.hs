@@ -40,8 +40,8 @@ data MessageRec = MessageRec ActorId ActorId Message -- Sender Receiver Message
 event :: Event -> Act ()
 event = tell . return 
 
-evAddActor :: (Actor a) => a -> Act ()
-evAddActor = event . AddActor . AnyActor
+evAddActor :: AnyActor -> Act ()
+evAddActor = event . AddActor
 
 evRemoveSelf :: Act ()
 evRemoveSelf = ask >>= event . RemoveActor . usSelfId
