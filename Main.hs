@@ -17,20 +17,12 @@ import Render
 import qualified IdentityList as IL
 
 processEvents :: GameState -> [Event] -> GameState
-processEvents gs = foldl f gs
+processEvents = foldl f
     where
         f :: GameState -> Event -> GameState
         f gs (AddActor a) = gs { gsActors = a `IL.insert` gsActors gs  }
         f gs (RemoveActor id) = gs { gsActors = id `IL.delete` gsActors gs }
         f gs (SendMessage msg) = gs { gsMessages = msg : gsMessages gs }
-
-{-processActorEvents :: ActorList -> [Event] -> ActorList-}
-{-processActorEvents as = foldl f as-}
-   {-where-}
-    {-f :: ActorList -> Event -> ActorList-}
-    {-f as (AddActor a) = a `IL.insert` as-}
-    {-f as (RemoveActor id) = id `IL.delete` as-}
-    {-f as _ = as-}
 
 data MainState = MainState { msGameState :: GameState
                            , msSprites :: SpriteMap
@@ -47,7 +39,7 @@ updateGS gs =
         ustate = UpdateState { usTileMap = tm
                              , usSelfId = error "self id not set"
                              }
-        act = dispatchMessages msgs actors >>= updateActors
+        act = dispatchMessages actors msgs >>= updateActors >>= collisions
         (actors', !random', evs) = runAct act random ustate
       
         -- Process events
@@ -119,5 +111,5 @@ main = do
                            }
     mainLoop mstate (0, 0)
 
-    where actors = {-(AnyActor $ newNPC (50, 100)) `IL.insert` ((AnyActor $ newNPC (50, 100)) `IL.insert`-} ((AnyActor $ newNPC (100, 300)) `IL.insert` IL.empty)
+    where actors = (AnyActor $ newNPC (480, 280) (-1, 0)) `IL.insert` ((AnyActor $ newNPC (100, 300) (1, 0)) `IL.insert` IL.empty)
           tm = array ((0, 0), (40, 30)) [((x, y), y*10+x) | x <- [0..40], y <- [0..30]]

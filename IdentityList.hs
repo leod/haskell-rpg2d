@@ -3,6 +3,7 @@ module IdentityList (IL,
                      insert,
                      delete,
                      update,
+                     IdentityList.foldl,
                      IdentityList.map,
                      IdentityList.lookup,
                      IdentityList.mapM,
@@ -35,6 +36,10 @@ delete k (IL nk as) =
         f as@(a@(k', _) : ks) | k > k'    = as
                               | k == k    = ks
                               | otherwise = a : f ks
+
+foldl :: (a -> (ILKey, b) -> a) -> a -> IL b -> a
+foldl f z (IL k []) = z
+foldl f z (IL k (a:as)) = IdentityList.foldl f (f z a) $ IL k as
 
 map :: ((ILKey, a) -> b) -> IL a -> IL b
 map f (IL k as) =
