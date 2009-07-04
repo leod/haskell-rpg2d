@@ -7,9 +7,10 @@ module Actor
     , MessageRec
     , UpdateState(UpdateState, usTileMap, usSelfId)
     , Act, runAct
-    , Actor(neededResources, update, render, message)
+    , Actor(neededResources, update, render, message, collision, posRect)
     , ActorId, ActorList, AnyActor(AnyActor)
     , updateActors, renderActors, dispatchMessages
+    , collisions
     ) where
 
 import Control.Monad.Random
@@ -50,7 +51,7 @@ evMessage to msg = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us)
 
 -- Reader state for actors when updating
 data UpdateState = UpdateState { usTileMap :: TileMap
-                               , usSelfId :: ActorId -- The Id of the actor currently being updated. Not sure if this should be passed as a parameter to update instead...
+                               , usSelfId :: ActorId -- The id of the actor currently being updated. Not sure if this should be passed as a parameter to update instead...
                                }
 
 -- Monad in which actors are updated
@@ -72,6 +73,15 @@ class Show a => Actor a where
     message :: a -> Message -> Act a
     message a _ = return a
 
+    posRect :: a -> Rect
+    posRect = undefined
+
+    isSolid :: a -> Bool
+    isSolid _ = True
+
+    collision :: a -> (ActorId, AnyActor) -> Act a
+    collision a _ = return a
+
 data AnyActor = forall a. Actor a => AnyActor a
 
 instance Show AnyActor where
@@ -90,20 +100,38 @@ mapActors g acts = IL.mapM f acts
         f (id, actor) = withSelfId id (g actor)
 
 updateActors :: ActorList -> Act ActorList
-updateActors = mapActors (\(AnyActor actor) ->
-    do actor' <- update actor
-       return $ AnyActor actor')
+updateActors = mapActors (\(AnyActor actor) -> do
+    actor' <- update actor
+    return $ AnyActor actor')
 
-dispatchMessages :: [MessageRec] -> ActorList -> Act ActorList
-dispatchMessages msgs actors = foldl f (return actors) msgs 
+dispatchMessages :: ActorList -> [MessageRec] -> Act ActorList
+dispatchMessages = foldl f . return 
     where
         f :: Act ActorList -> MessageRec -> Act ActorList 
-        f mlist (MessageRec from to msg) = do list <- mlist
-                                              case to `IL.lookup` list of
-                                                  (Just (AnyActor actor)) -> do
-                                                      actor' <- withSelfId to (message actor msg)
-                                                      return $ IL.update to (AnyActor actor') list
+        f mlist (MessageRec from to msg) = do
+            list <- mlist
+            case to `IL.lookup` list of
+                Just (AnyActor actor) -> do
+                    actor' <- withSelfId to $ message actor msg
+                    return $ IL.update to (AnyActor actor') list
+                Nothing -> mlist -- Actor was deleted before message reached it
 
+collisions :: ActorList -> Act ActorList
+collisions acts = IL.mapM f acts
+    where
+        f :: (ActorId, AnyActor) -> Act AnyActor
+        f (id, actor@(AnyActor aa)) = withSelfId id $ IL.foldl g (return actor) acts
+            where
+                -- Test intersection of one actor with all other actors
+                g :: Act AnyActor -> (ActorId, AnyActor) -> Act AnyActor
+                g mactor rec@(id2, (AnyActor actor2)) 
+                    | id2 == id = mactor
+                    | otherwise = do
+                        AnyActor actor <- mactor 
+
+                        if rectIntersect (posRect actor) (posRect actor2) 
+                            then collision actor rec >>= return . AnyActor
+                            else mactor
 
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = IL.mapM_ f acts

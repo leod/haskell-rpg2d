@@ -5,3 +5,6 @@ Main
 *.hp
 *.aux
 *.prof
+*.ps
+*.dot
+*.hs~

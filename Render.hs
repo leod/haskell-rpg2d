@@ -1,4 +1,11 @@
-module Render (Sprite, surfaceToSprite, spriteClipped, sprite, SpriteMap, newSpriteMap, addSprites, addSprite, getSprite, sprTexture, sprWidth, sprHeight, sprWidthRatio, sprHeightRatio, withTexture) where
+module Render
+    ( Sprite
+    , SpriteMap, newSpriteMap , addSprites, addSprite, getSprite
+    , sprTexture, sprWidth, sprHeight, sprWidthRatio, sprHeightRatio
+    , surfaceToSprite, loadSprite
+    , spriteClipped, sprite
+    , withTexture
+    ) where
 
 import Data.Map (Map)
 import Control.Monad
@@ -63,9 +70,7 @@ surfaceToSprite :: SDL.Surface -> IO Sprite
 surfaceToSprite surf = do
     surf' <- padSurface surf
 
-    [tex@(GL.TextureObject b)] <- GL.genObjectNames 1
-    {-isGood <- GL.isObjectName tex-}
-    {-unless isGood $ fail "WUT"-}
+    [tex] <- GL.genObjectNames 1
 
     oldTex <- GL.get (GL.textureBinding GL.Texture2D)
     GL.textureBinding GL.Texture2D $= Just tex
@@ -128,12 +133,6 @@ spriteClipped spr p (cx, cy) (cw, ch) =
                         sprHeightRatio spr * ((fromIntegral cy) / (sprHeight spr)))
             (tw, th) = (sprWidthRatio spr * ((fromIntegral cw) / (sprWidth spr)),
                         sprHeightRatio spr * ((fromIntegral ch) / (sprHeight spr)))
-
---        print p
---        print (sprWidthRatio spr, sprHeightRatio spr)
---        print (tx, ty)
---        print (tw, th)
---        print "---"
 
         GL.texCoord $ GL.TexCoord2 tx ty
         GL.vertex   $ GL.Vertex2 0 (0 :: Double)

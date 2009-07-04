@@ -3,7 +3,6 @@ module NPC (NPC, newNPC) where
 import Control.Monad
 import Control.Monad.Random
 import Control.Monad.Reader
-import Graphics.UI.SDL
 
 import Actor
 import Util
@@ -33,5 +32,9 @@ instance Actor NPC where
 
     message self (Impact dmg vel) = evRemoveSelf >> return self
 
-newNPC :: Point2 -> NPC
-newNPC p = NPC { pos = p, vel = (1, 0) }
+    posRect NPC { pos = (x, y) } = Rect x y 50 50
+
+    collision self (oid, _) = evRemoveSelf >> evMessage oid (Impact 200 (1,2)) >> return self
+
+newNPC :: Point2 -> Point2 -> NPC
+newNPC p v = NPC { pos = p, vel = v }
