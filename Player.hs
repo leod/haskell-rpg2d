@@ -50,7 +50,8 @@ instance Actor Player where
                          else frame self
                      else 0
 
-        evMoveCamera (-px pos' + viewWidth `div` 2, -py pos' + viewHeight `div` 2)
+        evMoveCamera (-px pos' + viewWidth `div` 2 - px clip `div` 2,
+                      -py pos' + viewHeight `div` 2 - py clip `div` 2)
 
         return self { pos = pos'
                     , dir = fromMaybe (dir self) dir'
