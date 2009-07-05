@@ -8,6 +8,7 @@ module Render
     ) where
 
 import Data.Map (Map)
+import Data.Maybe
 import Control.Monad
 import qualified Data.Map as Map
 import System.Mem.Weak
@@ -34,7 +35,7 @@ addSprites :: SpriteMap -> [String] -> IO SpriteMap
 addSprites map names = foldM addSprite map names
 
 getSprite :: String -> SpriteMap -> Sprite
-getSprite name map = let spr = maybe (error name) id $ name `Map.lookup` map
+getSprite name map = let spr = fromMaybe (error name) $ name `Map.lookup` map
                      in spr
 
 -- The following is taken mostly from Graphics.DrawingCombinators
@@ -127,25 +128,26 @@ withTranslate (x, y) act = do
         act
 
 spriteClipped :: Sprite -> Point2 -> Point2 -> Point2 -> IO ()
-spriteClipped spr p (cx, cy) (cw, ch) =
+spriteClipped spr p (cx', cy') (cw', ch') =
     withTexture (sprTexture spr) $ withTranslate p $ GL.renderPrimitive GL.Quads $ do
-        let (w, h) = (fromIntegral cw, fromIntegral ch) :: (Double, Double)
-            (tx, ty) = (sprWidthRatio spr * ((fromIntegral cx) / (sprWidth spr)),
-                        sprHeightRatio spr * ((fromIntegral cy) / (sprHeight spr)))
-            (tw, th) = (sprWidthRatio spr * ((fromIntegral cw) / (sprWidth spr)),
-                        sprHeightRatio spr * ((fromIntegral ch) / (sprHeight spr)))
+        let (cx, cy) = (fromIntegral cx', fromIntegral cy')
+            (cw, ch) = (fromIntegral cw', fromIntegral ch')
+            (tx, ty) = (sprWidthRatio spr * (cx / (sprWidth spr)),
+                        sprHeightRatio spr * (cy / (sprHeight spr)))
+            (tw, th) = (sprWidthRatio spr * (cw / (sprWidth spr)),
+                        sprHeightRatio spr * (ch / (sprHeight spr)))
 
         GL.texCoord $ GL.TexCoord2 tx ty
-        GL.vertex   $ GL.Vertex2 0 (0 :: Double)
+        GL.vertex   $ GL.Vertex2 0 (0::Double)
 
-        GL.texCoord $ GL.TexCoord2 (tw+tx) tx
-        GL.vertex   $ GL.Vertex2 w 0
+        GL.texCoord $ GL.TexCoord2 (tw+tx) ty
+        GL.vertex   $ GL.Vertex2 cw 0
 
         GL.texCoord $ GL.TexCoord2 (tw+tx) (th+ty)
-        GL.vertex   $ GL.Vertex2 w h
+        GL.vertex   $ GL.Vertex2 cw ch
 
         GL.texCoord $ GL.TexCoord2 tx (th+ty)
-        GL.vertex   $ GL.Vertex2 0 h
+        GL.vertex   $ GL.Vertex2 0 ch
 
 sprite :: Sprite -> Point2 -> IO ()
 sprite spr p = spriteClipped spr p (0, 0) (truncate $ sprWidth spr, truncate $ sprHeight spr)
