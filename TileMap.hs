@@ -9,7 +9,9 @@ import Render
 import Graphics.Rendering.OpenGL.GL as GL
 
 type Tile = Int
-type TileMap = Array Point2 Tile
+type Layer = Array Point2 Tile
+--data TileMap = TileMap Layer Layer Layer Layer
+type TileMap = Layer
 
 renderTileMap :: TileMap -> SpriteMap -> IO ()
 renderTileMap tm sm =
