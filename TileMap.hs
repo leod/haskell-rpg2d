@@ -16,7 +16,7 @@ renderTileMap tm sm = let tiles = assocs tm
                       in withTexture (sprTexture spr) $ GL.renderPrimitive GL.Quads $ do 
                         mapM_ (\((x', y'), t) ->
                                let (x, y) = ((fromIntegral x')*tileWidth, (fromIntegral y')*tileHeight) :: (Double, Double)
-                                   (cx, cy) = (tileWidth*0, tileHeight*0) :: (Double, Double)
+                                   (cx, cy) = (tileWidth*0, tileHeight*5) :: (Double, Double)
                                    (cw, ch) = (tileWidth, tileHeight) :: (Double, Double)
                                    (tx, ty) = (sprWidthRatio spr * (cx / (sprWidth spr)),
                                                sprHeightRatio spr * (cy / (sprHeight spr)))

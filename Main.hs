@@ -121,8 +121,8 @@ mainLoop mstate (time, frames) =
 
         time' <- SDL.getTicks
 
-        when (time' - time > 1000) $
-            print frames
+        {-when (time' - time > 1000) $-}
+            {-print frames-}
 
         let frmCtr = if (time' - time) > 1000
                      then (time', 0)
@@ -141,7 +141,7 @@ main = do
     GL.clearColor $= Color4 1 1 1 0
     GL.viewport $= (Position 0 0, Size 800 600)
 
-    sprs <- (newSpriteMap `addSprite` "test2.png") >>= (`addSprite` "npc.bmp") >>= (`addSprite` "link.gif")
+    sprs <- (newSpriteMap `addSprite` "test2.png") >>= (`addSprite` "npc.bmp") >>= (`addSprite` "linkanim.png") >>= (`addSprite` "test.png")
 
     randInit <- randomIO
 
@@ -158,5 +158,5 @@ main = do
     mainLoop mstate (0, 0)
 
     where --actors = ((newNPC (480, 280) (-1, 0)) `IL.insert` ((newNPC (100, 300) (1, 0)) `IL.insert` IL.empty))
-          actors = newNPC (10, 10) (0, 0) `IL.insert` (newPlayer (100, 100) `IL.insert` IL.empty)
+          actors = {-newNPC (10, 10) (0, 0) `IL.insert`-} (newPlayer (100, 100) `IL.insert` IL.empty)
           tm = array ((0, 0), (40, 30)) [((x, y), y*10+x) | x <- [0..40], y <- [0..30]]
