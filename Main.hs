@@ -17,10 +17,12 @@ import GameState
 import NPC
 import Player
 import Consts
+import Enemy
 import Render
 import Input
 import Util (px, py)
 import qualified IdentityList as IL
+import IdentityList ((+:))
 
 processEvents :: GameState -> [Event] -> GameState
 processEvents = foldl f
@@ -128,7 +130,7 @@ mainLoop mstate (time, frames) =
                      then (time', 0)
                      else (time, frames+1)
 
-        SDL.delay 5
+        SDL.delay 20
 
         if inQuit input
             then return ()
@@ -141,7 +143,7 @@ main = do
     GL.clearColor $= Color4 1 1 1 0
     GL.viewport $= (Position 0 0, Size 800 600)
 
-    sprs <- (newSpriteMap `addSprite` "test2.png") >>= (`addSprite` "npc.bmp") >>= (`addSprite` "linkanim.png") >>= (`addSprite` "test.png")
+    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png"]
 
     randInit <- randomIO
 
@@ -157,6 +159,5 @@ main = do
                            }
     mainLoop mstate (0, 0)
 
-    where --actors = ((newNPC (480, 280) (-1, 0)) `IL.insert` ((newNPC (100, 300) (1, 0)) `IL.insert` IL.empty))
-          actors = {-newNPC (10, 10) (0, 0) `IL.insert`-} (newPlayer (100, 100) `IL.insert` IL.empty)
+    where actors = newEnemy (10, 10) +: newPlayer (100, 100) +: IL.empty
           tm = array ((0, 0), (40, 30)) [((x, y), y*10+x) | x <- [0..40], y <- [0..30]]

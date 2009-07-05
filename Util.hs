@@ -1,7 +1,7 @@
 module Util
     ( DefGen
     , Point2
-    , Rect(Rect), rectIntersect
+    , Rect(Rect), rectIntersect, mkRect
     , (^+), (^*)
     , px, py
     , Direction(..)
@@ -19,6 +19,9 @@ data Rect = Rect Int Int Int Int
 rectIntersect :: Rect -> Rect -> Bool
 rectIntersect (Rect x1 y1 w1 h1) (Rect x2 y2 w2 h2) =
     not $ x1 > x2 + w2 || x1 + w1 < x2 || y1 > y2 + h2 || y1 + h1 < y2
+
+mkRect :: Point2 -> Point2 -> Rect
+mkRect (x, y) (w, h) = Rect x y w h
 
 infixl 6 ^+
 infixl 7 ^*
