@@ -1,5 +1,5 @@
 module GameState (
-    GameState(GameState, gsTileMap, gsActors, gsRandom, gsMessages)
+    GameState(..)
     ) where
 
 import Actor
@@ -11,4 +11,5 @@ data GameState = GameState { gsTileMap :: TileMap
                            , gsActors :: ActorList
                            , gsRandom :: DefGen
                            , gsMessages :: [MessageRec]
+                           , gsCamera :: Point2
                            } deriving Show

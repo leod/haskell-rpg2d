@@ -1,4 +1,13 @@
-module Util (DefGen, Point2, Rect(Rect), rectIntersect, (^+), px, py) where
+module Util
+    ( DefGen
+    , Point2
+    , Rect(Rect), rectIntersect
+    , (^+), (^*)
+    , px, py
+    , Direction(..)
+    , dirFromBools
+    , dirToVel
+    ) where
 
 import System.Random
 
@@ -16,8 +25,27 @@ infix 6 ^+
 (^+) :: Point2 -> Point2 -> Point2
 (x1, y1) ^+ (x2, y2) = (x1 + x2, y1 + y2)
 
+(^*) :: Point2 -> Point2 -> Point2
+(x1, y1) ^* (x2, y2) = (x1 * x2, y1 * y2)
+
 px :: Point2 -> Int
 px (x, _) = x
 
 py :: Point2 -> Int
 py (_, y) = y
+
+dirFromBools :: Bool -> Bool -> Bool -> Bool -> Maybe Direction
+dirFromBools True _ _ _ = Just DirLeft
+dirFromBools _ True _ _ = Just DirRight
+dirFromBools _ _ True _ = Just DirUp
+dirFromBools _ _ _ True = Just DirDown
+dirFromBools _ _ _ _    = Nothing
+
+data Direction = DirLeft | DirRight | DirUp | DirDown 
+    deriving Show
+
+dirToVel :: Direction -> Point2
+dirToVel DirLeft = (-1, 0)
+dirToVel DirRight = (1, 0)
+dirToVel DirUp = (0, -1)
+dirToVel DirDown = (0, 1)

@@ -11,13 +11,12 @@ type Tile = Int
 type TileMap = Array Point2 Tile
 
 renderTileMap :: TileMap -> SpriteMap -> IO ()
-renderTileMap tm sm = {-# SCC "renderTileMap" #-}
-                      let tiles = assocs tm
+renderTileMap tm sm = let tiles = assocs tm
                           spr = "test2.png" `getSprite` sm
                       in withTexture (sprTexture spr) $ GL.renderPrimitive GL.Quads $ do 
                         mapM_ (\((x', y'), t) ->
                                let (x, y) = ((fromIntegral x')*tileWidth, (fromIntegral y')*tileHeight) :: (Double, Double)
-                                   (cx, cy) = (tileWidth*4, tileHeight*3) :: (Double, Double)
+                                   (cx, cy) = (tileWidth*0, tileHeight*0) :: (Double, Double)
                                    (cw, ch) = (tileWidth, tileHeight) :: (Double, Double)
                                    (tx, ty) = (sprWidthRatio spr * (cx / (sprWidth spr)),
                                                sprHeightRatio spr * (cy / (sprHeight spr)))

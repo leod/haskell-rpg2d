@@ -106,6 +106,7 @@ surfaceToSprite surf = do
                         }
 
     addFinalizer sprite $ do
+        putStrLn "freeing texture"
         GL.deleteObjectNames [sprTexture sprite]
 
     return sprite

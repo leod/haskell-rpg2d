@@ -1,10 +1,17 @@
 module Consts
     ( tileWidth
     , tileHeight
+    , viewWidth
+    , viewHeight
     ) where
 
-tileWidth :: (Num a) => a
+tileWidth, tileHeight :: (Num a) => a
 tileWidth = 32
-
-tileHeight :: (Num a) => a
 tileHeight = 32
+
+viewWidth, viewHeight :: Int
+viewWidth = 320
+viewHeight = 240
+
+{-screenWidth = 640-}
+{-screenHeight = 480-}
