@@ -1,11 +1,12 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Actor
-    ( Event(AddActor, RemoveActor, SendMessage)
-    , evAddActor, evRemoveSelf, evMessage
+    ( Event(AddActor, RemoveActor, SendMessage, MoveCamera)
+    , input
+    , evAddActor, evRemoveSelf, evMessage, evMoveCamera
     , Message(Impact)
     , MessageRec
-    , UpdateState(UpdateState, usTileMap, usSelfId)
+    , UpdateState(UpdateState, usTileMap, usInput, usSelfId)
     , Act, runAct
     , Actor(neededResources, update, render, message, collision, posRect)
     , ActorId, ActorList, AnyActor(AnyActor)
@@ -16,11 +17,12 @@ module Actor
 import Control.Monad.Random
 import Control.Monad.Writer
 import Control.Monad.Reader
-import Graphics.UI.SDL (Surface)
+import qualified Graphics.UI.SDL as SDL (Event)
 
 import TileMap
 import Util
 import Render
+import Input
 import IdentityList (IL)
 import qualified IdentityList as IL
 
@@ -28,6 +30,7 @@ import qualified IdentityList as IL
 data Event = AddActor AnyActor
            | RemoveActor ActorId
            | SendMessage MessageRec
+           | MoveCamera Point2
     deriving Show
 
 -- Actors can send messages to each other, this is the only way in which they can influence each other
@@ -36,6 +39,9 @@ data Message = Impact Int Point2
 
 data MessageRec = MessageRec ActorId ActorId Message -- Sender Receiver Message
     deriving Show
+
+input :: Act Input
+input = ask >>= return . usInput
 
 event :: Event -> Act ()
 event = tell . return 
@@ -49,8 +55,12 @@ evRemoveSelf = ask >>= event . RemoveActor . usSelfId
 evMessage :: ActorId -> Message -> Act ()
 evMessage to msg = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us) to msg 
 
+evMoveCamera :: Point2 -> Act ()
+evMoveCamera = event . MoveCamera
+
 -- Reader state for actors when updating
 data UpdateState = UpdateState { usTileMap :: TileMap
+                               , usInput :: Input
                                , usSelfId :: ActorId -- The id of the actor currently being updated. Not sure if this should be passed as a parameter to update instead...
                                }
 
