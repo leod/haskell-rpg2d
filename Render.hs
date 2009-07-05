@@ -32,7 +32,7 @@ addSprite map name =
                       return $ Map.insert name spr map 
 
 addSprites :: SpriteMap -> [String] -> IO SpriteMap
-addSprites map names = foldM addSprite map names
+addSprites = foldM addSprite
 
 getSprite :: String -> SpriteMap -> Sprite
 getSprite name map = let spr = fromMaybe (error name) $ name `Map.lookup` map

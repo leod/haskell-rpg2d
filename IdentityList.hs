@@ -1,15 +1,17 @@
-module IdentityList (IL,
-                     empty,
-                     insert,
-                     delete,
-                     update,
-                     IdentityList.foldl,
-                     IdentityList.map,
-                     IdentityList.lookup,
-                     IdentityList.mapM,
-                     IdentityList.sequence,
-                     IdentityList.mapM_,
-                     IdentityList.sequence_) where
+module IdentityList
+    ( IL
+    , empty
+    , insert, (+:)
+    , delete
+    , update
+    , IdentityList.foldl
+    , IdentityList.map
+    , IdentityList.lookup
+    , IdentityList.mapM
+    , IdentityList.sequence
+    , IdentityList.mapM_
+    , IdentityList.sequence_
+    ) where
 
 import Control.Monad
 
@@ -27,6 +29,10 @@ empty = IL 0 []
 insert :: a -> IL a -> IL a
 insert a (IL k as) =
     IL (k + 1) ((k, a) : as)
+
+infixr 5 +:
+(+:) :: a -> IL a -> IL a
+(+:) = insert
 
 delete :: ILKey -> IL a -> IL a
 delete k (IL nk as) =

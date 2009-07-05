@@ -34,12 +34,12 @@ instance Actor Player where
         inp <- input
 
         let dir' = dirFromBools (inLArrow inp) (inRArrow inp) (inUArrow inp) (inDArrow inp)
-            vel' = fromMaybe (0, 0) $ dirToVel `liftM` dir'
+            vel' = fromMaybe (0, 0) $ ((^*(2,2)) . dirToVel) `liftM` dir'
             pos' = pos self ^+ vel'
 
             walking' = vel' /= (0, 0)
 
-            anim' = if walking' then updateAnim 13 7 $ anim self else fixFrame 0
+            anim' = if walking' then updateAnim 5 7 $ anim self else fixFrame 0
 
         evMoveCamera (-px pos' + viewWidth `div` 2 - px clip `div` 2,
                       -py pos' + viewHeight `div` 2 - py clip `div` 2)
@@ -50,7 +50,7 @@ instance Actor Player where
                     , anim = anim'
                     }
         
-    posRect self = Rect 0 0 0 0
+    posRect self = mkRect (pos self) clip
     render self sprs = spriteClipped (getSprite file sprs)
                                      (pos self)
                                      (px clip * (animFrame . anim) self, py clip * dirToRow (dir self)) clip
