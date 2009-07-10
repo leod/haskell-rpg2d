@@ -88,7 +88,7 @@ surfaceToSprite surf = do
     GL.textureWrapMode GL.Texture2D GL.S $= (GL.Mirrored, GL.Repeat)
     GL.textureWrapMode GL.Texture2D GL.T $= (GL.Mirrored, GL.Repeat)
 
-    GL.texImage2D Nothing GL.NoProxy 0 (GL.RGBA')
+    GL.texImage2D Nothing GL.NoProxy 0 GL.RGBA'
                   (GL.TextureSize2D (fromIntegral $ SDL.surfaceGetWidth surf')
                                     (fromIntegral $ SDL.surfaceGetHeight surf'))
                   0
@@ -113,16 +113,16 @@ surfaceToSprite surf = do
     return sprite
 
 loadSprite :: FilePath -> IO Sprite
-loadSprite path = (putStrLn $ "loading " ++ path) >> Image.load path >>= surfaceToSprite
+loadSprite path = putStrLn ("loading " ++ path) >> Image.load path >>= surfaceToSprite
 
 withTexture :: GL.TextureObject -> IO a -> IO a
 withTexture tex act = do
     GL.texture GL.Texture2D $= GL.Enabled
-    GL.textureBinding GL.Texture2D $= (Just tex) 
+    GL.textureBinding GL.Texture2D $= Just tex 
     act
 
 withTranslate :: Point2 -> IO a -> IO a
-withTranslate (x, y) act = do
+withTranslate (x, y) act =
     GL.preservingMatrix $ do
         GL.translate $ Vector3 (fromIntegral x) (fromIntegral y) (0 :: Double)
         act
@@ -132,10 +132,10 @@ spriteClipped spr p (cx', cy') (cw', ch') =
     withTexture (sprTexture spr) $ withTranslate p $ GL.renderPrimitive GL.Quads $ do
         let (cx, cy) = (fromIntegral cx', fromIntegral cy')
             (cw, ch) = (fromIntegral cw', fromIntegral ch')
-            (tx, ty) = (sprWidthRatio spr * (cx / (sprWidth spr)),
-                        sprHeightRatio spr * (cy / (sprHeight spr)))
-            (tw, th) = (sprWidthRatio spr * (cw / (sprWidth spr)),
-                        sprHeightRatio spr * (ch / (sprHeight spr)))
+            (tx, ty) = (sprWidthRatio spr * (cx / sprWidth spr),
+                        sprHeightRatio spr * (cy / sprHeight spr))
+            (tw, th) = (sprWidthRatio spr * (cw / sprWidth spr),
+                        sprHeightRatio spr * (ch / sprHeight spr))
 
         GL.texCoord $ GL.TexCoord2 tx ty
         GL.vertex   $ GL.Vertex2 0 (0::Double)

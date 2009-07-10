@@ -52,10 +52,10 @@ map f (IL k as) =
     IL k [(k, f a) | a@(k, _) <- as]
 
 --sequence :: (Monad m) => IL (m a) -> m (IL a)
-sequence (IL k as) = Prelude.mapM (\(k, v) -> liftM ((,) k) v) as >>= \vs -> return $ IL k vs
+sequence (IL k as) = liftM (IL k) $ Prelude.mapM (\(k, v) -> liftM ((,) k) v) as
 
 mapM :: (Functor m, Monad m) => ((ILKey, a) -> m b) -> IL a -> m (IL b)
-mapM f il = IdentityList.sequence (IdentityList.map f il)
+mapM f = IdentityList.sequence . IdentityList.map f
 
 sequence_ :: (Monad m) => IL (m a) -> m ()
 sequence_ (IL k as) = f as
@@ -65,7 +65,7 @@ sequence_ (IL k as) = f as
         f ((_, x):xs) = x >> f xs 
 
 mapM_ :: (Monad m) => ((ILKey, a) -> m b) -> IL a -> m ()
-mapM_ f il = IdentityList.sequence_ (IdentityList.map f il)
+mapM_ f = IdentityList.sequence_ . IdentityList.map f
 
 lookup :: ILKey -> IL a -> Maybe a
 lookup k (IL _ as) = Prelude.lookup k as

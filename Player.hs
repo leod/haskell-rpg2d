@@ -56,7 +56,7 @@ instance Actor Player where
                                      (px clip * (animFrame . anim) self, py clip * dirToRow (dir self)) clip
 
 newPlayer :: Point2 -> AnyActor
-newPlayer p = AnyActor $
+newPlayer p = AnyActor
     Player { pos = p
            , vel = (0, 0)
            , dir = DirLeft
