@@ -20,11 +20,6 @@ data Player = Player { pos :: Point2
 clip :: Point2
 clip = (23, 26)
 
-dirToRow DirLeft = 0
-dirToRow DirUp = 1
-dirToRow DirRight = 2
-dirToRow DirDown = 3
-
 file = "linkanim.png"
 
 instance Actor Player where
@@ -33,11 +28,14 @@ instance Actor Player where
     update self = do
         inp <- input
 
-        let dir' = dirFromBools (inLArrow inp) (inRArrow inp) (inUArrow inp) (inDArrow inp)
-            vel' = fromMaybe (0, 0) $ ((^*(2,2)) . dirToVel) `liftM` dir'
-            pos' = pos self ^+ vel'
+        let walkDir = if walking self && inputHasDir (dir self) inp
+                          then Just (dir self)
+                          else dirFromInput inp
+            vel' = maybe (0, 0) ((^*(2,2)) . dirToVel) walkDir
 
-            walking' = vel' /= (0, 0)
+            pos' = pos self ^+ vel' ^+ maybe (0, 0) (strideVel inp) walkDir 
+
+            walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
 
             anim' = if walking' then updateAnim 5 7 $ anim self else fixFrame 0
 
@@ -45,7 +43,7 @@ instance Actor Player where
                       -py pos' + viewHeight `div` 2 - py clip `div` 2)
 
         return self { pos = pos'
-                    , dir = fromMaybe (dir self) dir'
+                    , dir = fromMaybe (dir self) walkDir
                     , walking = walking'
                     , anim = anim'
                     }
@@ -63,3 +61,32 @@ newPlayer p = AnyActor
            , walking = False
            , anim = fixFrame 0 
            }
+
+inputHasDir :: Direction -> Input -> Bool
+inputHasDir DirLeft = inLArrow
+inputHasDir DirRight = inRArrow
+inputHasDir DirUp = inUArrow
+inputHasDir DirDown = inDArrow
+
+dirFromInput :: Input -> Maybe Direction
+dirFromInput Input { inLArrow = True } = Just DirLeft
+dirFromInput Input { inRArrow = True } = Just DirRight
+dirFromInput Input { inUArrow = True } = Just DirUp
+dirFromInput Input { inDArrow = True } = Just DirDown
+dirFromInput _                         = Nothing
+
+strideVel :: Input -> Direction -> Point2
+strideVel Input { inUArrow = True } DirLeft  = (0, -1)
+strideVel Input { inDArrow = True } DirLeft  = (0, 1)
+strideVel Input { inUArrow = True } DirRight = (0, -1)
+strideVel Input { inDArrow = True } DirRight = (0, 1)
+strideVel Input { inLArrow = True } DirUp    = (-1, 0)
+strideVel Input { inRArrow = True } DirUp    = (1, 0)
+strideVel Input { inLArrow = True } DirDown  = (-1, 0)
+strideVel Input { inRArrow = True } DirDown  = (1, 0)
+strideVel _ _ = (0, 0)
+
+dirToRow DirLeft = 0
+dirToRow DirUp = 1
+dirToRow DirRight = 2
+dirToRow DirDown = 3
