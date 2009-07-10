@@ -41,7 +41,7 @@ data MessageRec = MessageRec ActorId ActorId Message -- Sender Receiver Message
     deriving Show
 
 input :: Act Input
-input = ask >>= return . usInput
+input = liftM usInput ask
 
 event :: Event -> Act ()
 event = tell . return 
@@ -65,7 +65,7 @@ data UpdateState = UpdateState { usTileMap :: TileMap
                                }
 
 -- Monad in which actors are updated
-type Act a = RandT DefGen (ReaderT UpdateState (Writer [Event])) a
+type Act = RandT DefGen (ReaderT UpdateState (Writer [Event]))
 
 runAct :: Act a -> StdGen -> UpdateState -> (a, StdGen, [Event])
 runAct a g s = let b = runRandT a g
@@ -134,13 +134,13 @@ collisions acts = IL.mapM f acts
             where
                 -- Test intersection of one actor with all other actors
                 g :: Act AnyActor -> (ActorId, AnyActor) -> Act AnyActor
-                g mactor rec@(id2, (AnyActor actor2)) 
+                g mactor arec@(id2, AnyActor actor2) 
                     | id2 == id = mactor
                     | otherwise = do
                         AnyActor actor <- mactor 
 
                         if rectIntersect (posRect actor) (posRect actor2) 
-                            then collision actor rec >>= return . AnyActor
+                            then liftM AnyActor $ collision actor arec
                             else mactor
 
 renderActors :: ActorList -> SpriteMap -> IO ()

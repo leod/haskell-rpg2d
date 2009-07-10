@@ -45,7 +45,7 @@ instance Actor Enemy where
     collision self _ = evRemoveSelf >> return self
 
 newEnemy :: Point2 -> AnyActor
-newEnemy p = AnyActor $ Enemy { pos = p
-                              , dir = DirDown
-                              , anim = fixFrame 0
-                              }
+newEnemy p = AnyActor Enemy { pos = p
+                            , dir = DirDown
+                            , anim = fixFrame 0
+                            }

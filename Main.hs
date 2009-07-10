@@ -95,8 +95,8 @@ renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
     GL.preservingMatrix $ do
         GL.translate $ Vector3 (fromIntegral . px $ gsCamera gs) (fromIntegral . py $ gsCamera gs) (0 :: Double)
 
-        renderTileMap (gsTileMap gs) $ sprs
-        renderActors (gsActors gs) $ sprs
+        renderTileMap (gsTileMap gs) sprs
+        renderActors (gsActors gs) sprs
 
     SDL.glSwapBuffers
 

@@ -48,4 +48,4 @@ instance Actor NPC where
         return self
 
 newNPC :: Point2 -> Point2 -> AnyActor
-newNPC p v = AnyActor $ NPC { pos = p, vel = v }
+newNPC p v = AnyActor NPC { pos = p, vel = v }
