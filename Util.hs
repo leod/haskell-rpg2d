@@ -5,7 +5,6 @@ module Util
     , (^+), (^*)
     , px, py
     , Direction(..)
-    , dirFromBools
     , dirToVel
     ) where
 
@@ -32,21 +31,23 @@ infixl 7 ^*
 (^*) :: Point2 -> Point2 -> Point2
 (x1, y1) ^* (x2, y2) = (x1 * x2, y1 * y2)
 
+{-instance Num Point2 where-}
+    {-(x1, y1) + (x2, y2) = (x1 + x2, y1 + y2)-}
+    {-(x1, y1) * (x2, y2) = (x1 * x2, y1 * y2)-}
+    {-(x1, y1) - (x2, y2) = (x1 * x2, y1 * y2)-}
+    {-negate (x, y) = (-x, -y)-}
+    {-abs (x, y) = (abs x, abs y)-}
+    {-signum (x, y) = (signum x, signum y)-}
+    {-fromInteger i = (i, i)-}
+
 px :: Point2 -> Int
-px (x, _) = x
+px = fst
 
 py :: Point2 -> Int
-py (_, y) = y
-
-dirFromBools :: Bool -> Bool -> Bool -> Bool -> Maybe Direction
-dirFromBools True _ _ _ = Just DirLeft
-dirFromBools _ True _ _ = Just DirRight
-dirFromBools _ _ True _ = Just DirUp
-dirFromBools _ _ _ True = Just DirDown
-dirFromBools _ _ _ _    = Nothing
+py = snd
 
 data Direction = DirLeft | DirRight | DirUp | DirDown 
-    deriving Show
+    deriving (Show, Eq)
 
 dirToVel :: Direction -> Point2
 dirToVel DirLeft = (-1, 0)
