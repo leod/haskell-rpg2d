@@ -144,7 +144,7 @@ main = do
     GL.clearColor $= Color4 1 1 1 0
     GL.viewport $= (Position 0 0, Size 800 600)
 
-    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png"]
+    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png", "tileset.png", "ts.png"]
 
     randInit <- randomIO
 

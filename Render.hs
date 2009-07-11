@@ -6,6 +6,7 @@ module Render
     , surfaceToSprite, loadSprite
     , spriteClipped, sprite
     , withTexture
+    , withColor
     ) where
 
 import Data.Map (Map)
@@ -120,7 +121,7 @@ surfaceToSprite surf = do
                         , sprWidthRatio  = fromIntegral w / fromIntegral w'
                         , sprHeightRatio = fromIntegral h / fromIntegral h'
                         , sprWidth  = (fromIntegral w / fromIntegral w) * fromIntegral w
-                        , sprHeight = (fromIntegral h / fromIntegral w) * fromIntegral h
+                        , sprHeight = (fromIntegral h / fromIntegral h) * fromIntegral h
                         }
 
     addFinalizer sprite $ do
@@ -145,6 +146,13 @@ withTranslate (x, y) act =
     GL.preservingMatrix $ do
         GL.translate $ Vector3 (fromIntegral x) (fromIntegral y) (0 :: Double)
         act
+
+withColor :: GL.Color4 Double -> IO a -> IO a
+withColor c act = do
+    GL.color c
+    res <- act
+    GL.color $ GL.Color4 1 1 1 (1::Double)
+    return res
 
 spriteClipped :: Sprite -> Point2 -> Point2 -> Point2 -> IO ()
 spriteClipped spr p (cx', cy') (cw', ch') =

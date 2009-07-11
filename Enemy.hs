@@ -27,7 +27,7 @@ instance Actor Enemy where
     neededResources _ = ["enemy.png"]
 
     update self = do
-        let anim' = updateAnim 15 2 $ anim self
+        let anim' = updateAnim 8 2 $ anim self
             vel = dirToVel $ dir self
             pos' = pos self ^+ vel
 
@@ -39,7 +39,7 @@ instance Actor Enemy where
                                      (pos self)
                                      (px clip * dirToColumn (dir self), py clip * (animFrame . anim) self)
                                      clip
-
+    
     posRect self = mkRect (pos self ^+ (7, 7)) (20, 20)
 
     collision self _ = evRemoveSelf >> return self

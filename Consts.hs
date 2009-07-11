@@ -6,8 +6,8 @@ module Consts
     ) where
 
 tileWidth, tileHeight :: (Num a) => a
-tileWidth = 32
-tileHeight = 32
+tileWidth = 15
+tileHeight = 15
 
 viewWidth, viewHeight :: Int
 viewWidth = 320
