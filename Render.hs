@@ -1,6 +1,7 @@
 module Render
     ( Sprite
     , SpriteMap, newSpriteMap , addSprites, addSprite, getSprite
+    , rectangle
     , sprTexture, sprWidth, sprHeight, sprWidthRatio, sprHeightRatio
     , surfaceToSprite, loadSprite
     , spriteClipped, sprite
@@ -12,9 +13,10 @@ import Data.Maybe
 import Control.Monad
 import qualified Data.Map as Map
 import System.Mem.Weak
-import Graphics.UI.SDL as SDL
+import qualified Graphics.UI.SDL as SDL
 import Graphics.UI.SDL.Image as Image
-import Graphics.Rendering.OpenGL.GL as GL
+import Graphics.Rendering.OpenGL.GL (($=), Vector3(..))
+import qualified Graphics.Rendering.OpenGL.GL as GL
 import Graphics.Rendering.OpenGL.GLU as GLU
 
 import Util
@@ -37,6 +39,21 @@ addSprites = foldM addSprite
 getSprite :: String -> SpriteMap -> Sprite
 getSprite name map = let spr = fromMaybe (error name) $ name `Map.lookup` map
                      in spr
+
+rectangle :: Rect -> IO ()
+rectangle (Rect x y w h) = GL.renderPrimitive GL.LineLoop $ do
+    GL.color  $ GL.Color3 (1::Double) 0 0 -- TODO: tmp
+    GL.vertex $ GL.Vertex3 x1 y1 0
+    GL.vertex $ GL.Vertex3 x2 y1 0
+    GL.vertex $ GL.Vertex3 x2 y2 0
+    GL.vertex $ GL.Vertex3 x1 y2 0
+    GL.color  $ GL.Color3 (1::Double) 1 1
+    
+    where
+        x1 = fromIntegral x :: Double
+        y1 = fromIntegral y :: Double
+        x2 = x1 + fromIntegral w :: Double
+        y2 = y1 + fromIntegral h :: Double
 
 -- The following is taken mostly from Graphics.DrawingCombinators
 
@@ -119,7 +136,9 @@ withTexture :: GL.TextureObject -> IO a -> IO a
 withTexture tex act = do
     GL.texture GL.Texture2D $= GL.Enabled
     GL.textureBinding GL.Texture2D $= Just tex 
-    act
+    res <- act
+    GL.texture GL.Texture2D $= GL.Disabled
+    return res
 
 withTranslate :: Point2 -> IO a -> IO a
 withTranslate (x, y) act =

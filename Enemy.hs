@@ -40,7 +40,7 @@ instance Actor Enemy where
                                      (px clip * dirToColumn (dir self), py clip * (animFrame . anim) self)
                                      clip
 
-    posRect self = mkRect (pos self) clip
+    posRect self = mkRect (pos self ^+ (7, 7)) (20, 20)
 
     collision self _ = evRemoveSelf >> return self
 

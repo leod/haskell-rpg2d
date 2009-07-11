@@ -93,7 +93,9 @@ renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
     GL.loadIdentity
     
     GL.preservingMatrix $ do
-        GL.translate $ Vector3 (fromIntegral . px $ gsCamera gs) (fromIntegral . py $ gsCamera gs) (0 :: Double)
+        GL.translate $ Vector3 (fromIntegral . px $ gsCamera gs)
+                               (fromIntegral . py $ gsCamera gs)
+                               (0 :: Double)
 
         renderTileMap (gsTileMap gs) sprs
         renderActors (gsActors gs) sprs
@@ -101,40 +103,39 @@ renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
     SDL.glSwapBuffers
 
 mainLoop :: MainState -> (Word32, Int) -> IO ()
-mainLoop mstate (time, frames) = 
-    do
-        sdlEvents <- pollEvents
+mainLoop mstate (time, frames) = do
+    sdlEvents <- pollEvents
 
-        -- Update
-        let input = updateInput (msInput mstate) sdlEvents
+    -- Update
+    let input = updateInput (msInput mstate) sdlEvents
 
-            (gstate, io) = updateGS (msGameState mstate) input
-            mstate' = mstate { msGameState = gstate
-                             , msInput = input } 
+        (gstate, io) = updateGS (msGameState mstate) input
+        mstate' = mstate { msGameState = gstate
+                         , msInput = input } 
 
-            sprites = msSprites mstate'
-            actors  = gsActors gstate
-            random  = gsRandom gstate
-            tm      = gsTileMap gstate
-            msgs    = gsMessages gstate
+        sprites = msSprites mstate'
+        actors  = gsActors gstate
+        random  = gsRandom gstate
+        tm      = gsTileMap gstate
+        msgs    = gsMessages gstate
 
-        -- Render
-        renderMS mstate'
+    -- Render
+    renderMS mstate'
 
-        time' <- SDL.getTicks
+    time' <- SDL.getTicks
 
-        {-when (time' - time > 1000) $-}
-            {-print frames-}
+    {-when (time' - time > 1000) $-}
+        {-print frames-}
 
-        let frmCtr = if (time' - time) > 1000
-                     then (time', 0)
-                     else (time, frames+1)
+    let frmCtr = if (time' - time) > 1000
+                 then (time', 0)
+                 else (time, frames+1)
 
-        SDL.delay 20
+    SDL.delay 20
 
-        if inQuit input
-            then return ()
-            else mainLoop mstate' frmCtr
+    if inQuit input
+        then return ()
+        else mainLoop mstate' frmCtr
 
 main = do
     SDL.init [SDL.InitEverything]
