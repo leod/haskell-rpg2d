@@ -146,4 +146,5 @@ collisions acts = IL.mapM f acts
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = IL.mapM_ f acts
     where
-        f (_, AnyActor actor) = render actor sprs
+        f (_, AnyActor actor) = render actor sprs >>
+                                rectangle (posRect actor)

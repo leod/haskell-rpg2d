@@ -7,6 +7,8 @@ data Input = Input { inRArrow :: Bool
                    , inLArrow :: Bool
                    , inDArrow :: Bool 
                    , inQuit :: Bool
+                   , inCtrl :: Bool
+                   , inSpace :: Bool
                    }
 
 emptyInput :: Input
@@ -15,6 +17,8 @@ emptyInput = Input { inRArrow = False
                    , inLArrow = False
                    , inDArrow = False
                    , inQuit = False
+                   , inCtrl = False
+                   , inSpace = False
                    }
 
 updateInput :: Input -> [Event] -> Input

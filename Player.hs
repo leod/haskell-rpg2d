@@ -48,7 +48,7 @@ instance Actor Player where
                     , anim = anim'
                     }
         
-    posRect self = mkRect (pos self) clip
+    posRect self = mkRect (pos self ^+ (4, 4)) (12, 17)
     render self sprs = spriteClipped (getSprite file sprs)
                                      (pos self)
                                      (px clip * (animFrame . anim) self, py clip * dirToRow (dir self)) clip
