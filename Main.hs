@@ -20,9 +20,10 @@ import Consts
 import Enemy
 import Render
 import Input
-import Util (px, py)
+import Util (px, py, Direction(..))
 import qualified IdentityList as IL
 import IdentityList ((+:))
+import Arrow
 
 processEvents :: GameState -> [Event] -> GameState
 processEvents = foldl f
@@ -97,7 +98,7 @@ renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
                                (fromIntegral . py $ gsCamera gs)
                                (0 :: Double)
 
-        renderTileMap (gsTileMap gs) sprs
+        --renderTileMap (gsTileMap gs) sprs
         renderActors (gsActors gs) sprs
 
     SDL.glSwapBuffers
@@ -124,14 +125,14 @@ mainLoop mstate (time, frames) = do
 
     time' <- SDL.getTicks
 
-    {-when (time' - time > 1000) $-}
-        {-print frames-}
+    when (time' - time > 1000) $
+        print frames
 
     let frmCtr = if (time' - time) > 1000
                  then (time', 0)
                  else (time, frames+1)
 
-    SDL.delay 20
+    {-SDL.delay 20-}
 
     if inQuit input
         then return ()
@@ -144,7 +145,7 @@ main = do
     GL.clearColor $= Color4 1 1 1 0
     GL.viewport $= (Position 0 0, Size 800 600)
 
-    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png", "tileset.png", "ts.png"]
+    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png", "tileset.png", "ts.png", "arrow.png"] -- TMP!
 
     randInit <- randomIO
 
@@ -158,7 +159,11 @@ main = do
                            , msSprites = sprs
                            , msInput = emptyInput
                            }
+    print actors
     mainLoop mstate (0, 0)
 
-    where actors = newEnemy (10, 10) +: newPlayer (100, 100) +: IL.empty
+    where actors = addArrs 109 IL.empty -- $ newEnemy (10, 10) +: newPlayer (100, 100) +: IL.empty
+          arr = newArrow (0, 0) 0 1 DirLeft 
+          addArrs 0 il = il
+          addArrs n il = arr +: addArrs (n-1) il
           tm = array ((0, 0), (40, 30)) [((x, y), y*10+x) | x <- [0..40], y <- [0..30]]

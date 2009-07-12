@@ -4,6 +4,7 @@ module Actor
     ( Event(AddActor, RemoveActor, SendMessage, MoveCamera)
     , input
     , evAddActor, evRemoveSelf, evMessage, evMoveCamera
+    , selfId
     , Message(Impact)
     , MessageRec
     , UpdateState(UpdateState, usTileMap, usInput, usSelfId)
@@ -15,7 +16,7 @@ module Actor
     ) where
 
 import Control.Monad.Random
-import Control.Monad.Writer
+import Control.Monad.Writer.Strict
 import Control.Monad.Reader
 import qualified Graphics.UI.SDL as SDL (Event)
 import qualified Graphics.Rendering.OpenGL.GL as GL
@@ -62,27 +63,29 @@ evMoveCamera = event . MoveCamera
 -- Reader state for actors when updating
 data UpdateState = UpdateState { usTileMap :: TileMap
                                , usInput :: Input
-                               , usSelfId :: ActorId -- The id of the actor currently being updated. Not sure if this should be passed as a parameter to update instead...
+                               , usSelfId :: ActorId 
                                }
 
+selfId :: Act ActorId
+selfId = liftM usSelfId ask
+
 -- Monad in which actors are updated
-type Act = RandT DefGen (ReaderT UpdateState (Writer [Event]))
+type Act = ReaderT UpdateState (Writer [Event])
 
 runAct :: Act a -> StdGen -> UpdateState -> (a, StdGen, [Event])
-runAct a g s = let b = runRandT a g
-                   c = runReaderT b s
-                   ((actor, g'), evs) = runWriter c
-               in (actor, g', evs) 
+runAct a g s = let c = runReaderT a s
+                   (actor, evs) = runWriter c
+               in (actor, g, evs) 
 
 -- Actors need to be an instance of this type class
 class Show a => Actor a where
     neededResources :: a -> [FilePath]
 
     update :: a -> Act a
-    render :: a -> SpriteMap -> IO ()
+    render :: SpriteMap -> a -> IO ()
 
-    message :: a -> Message -> Act a
-    message a _ = return a
+    message :: Message -> a -> Act a
+    message _ = return
 
     posRect :: a -> Rect
     posRect = undefined
@@ -90,8 +93,8 @@ class Show a => Actor a where
     isSolid :: a -> Bool
     isSolid _ = True
 
-    collision :: a -> (ActorId, AnyActor) -> Act a
-    collision a _ = return a
+    collision :: (ActorId, AnyActor) -> a -> Act a
+    collision _ = return
 
 data AnyActor = forall a. Actor a => AnyActor a
 
@@ -123,12 +126,12 @@ dispatchMessages = foldl f . return
             list <- mlist
             case to `IL.lookup` list of
                 Just (AnyActor actor) -> do
-                    actor' <- withSelfId to $ message actor msg
+                    actor' <- withSelfId to $ message msg actor 
                     return $ IL.update to (AnyActor actor') list
                 Nothing -> mlist -- Actor was deleted before message reached it
 
 collisions :: ActorList -> Act ActorList
-collisions acts = IL.mapM f acts
+collisions acts = {-# SCC "collisions" #-} IL.mapM f acts
     where
         f :: (ActorId, AnyActor) -> Act AnyActor
         f (id, actor@(AnyActor aa)) = withSelfId id $ IL.foldl g (return actor) acts
@@ -138,14 +141,15 @@ collisions acts = IL.mapM f acts
                 g mactor arec@(id2, AnyActor actor2) 
                     | id2 == id = mactor
                     | otherwise = do
-                        AnyActor actor <- mactor 
+                        AnyActor actor <- mactor
+                        mactor
 
-                        if rectIntersect (posRect actor) (posRect actor2) 
-                            then liftM AnyActor $ collision actor arec
-                            else mactor
+                        {-if rectIntersect (posRect actor) (posRect actor2) -}
+                            {-then liftM AnyActor $ collision arec actor -}
+                            {-else mactor-}
 
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = IL.mapM_ f acts
     where
-        f (_, AnyActor actor) = render actor sprs
-                                -- >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)
+        f (_, AnyActor actor) = render sprs actor 
+                                >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)

@@ -18,11 +18,11 @@ renderGrid :: TileMap -> IO ()
 renderGrid tm = withColor (GL.Color4 0 0 1 0.2) $ GL.renderPrimitive GL.Lines $ do
     forM_ [0 .. w] (\x -> do
        GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) (0::Double)
-       GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) ((fromIntegral $ h*tileHeight)::Double))
+       GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) (fromIntegral $ h*tileHeight :: Double))
 
     forM_ [0 .. h] (\y -> do
        GL.vertex $ GL.Vertex2 (0::Double) (fromIntegral $ y*tileHeight)
-       GL.vertex $ GL.Vertex2 (fromIntegral $ w*tileWidth) ((fromIntegral $ y*tileHeight)::Double))
+       GL.vertex $ GL.Vertex2 (fromIntegral $ w*tileWidth) (fromIntegral $ y*tileHeight :: Double))
 
     where
         ((_, _), (w, h)) = bounds tm

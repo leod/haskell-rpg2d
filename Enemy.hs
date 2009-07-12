@@ -35,14 +35,14 @@ instance Actor Enemy where
                       , anim = anim'
                       }
 
-    render self sprs = spriteClipped (getSprite "enemy.png" sprs)
+    render sprs self = spriteClipped (getSprite "enemy.png" sprs)
                                      (pos self)
                                      (px clip * dirToColumn (dir self), py clip * (animFrame . anim) self)
                                      clip
     
     posRect self = mkRect (pos self ^+ (7, 7)) (20, 20)
 
-    collision self _ = evRemoveSelf >> return self
+    collision _ self = evRemoveSelf >> return self
 
 newEnemy :: Point2 -> AnyActor
 newEnemy p = AnyActor Enemy { pos = p
