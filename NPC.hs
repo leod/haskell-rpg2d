@@ -29,23 +29,23 @@ instance Actor NPC where
                                    , vel = vel'
                                    }
 
-    render self sprs = sprite (getSprite "npc.bmp" sprs) (pos self)
+    render sprs = sprite (getSprite "npc.bmp" sprs) . pos
 
-    message self (Impact dmg vel) = evRemoveSelf >> return self
+    message (Impact dmg vel) self = evRemoveSelf >> return self
 
     posRect NPC { pos = (x, y) } = Rect x y 50 50
 
-    collision self (oid, _) = do
-        evRemoveSelf
-        evMessage oid (Impact 200 (1,2)) 
+    {-collision (oid, _) self = do-}
+        {-evRemoveSelf-}
+        {-evMessage oid (Impact 200 (1,2)) -}
 
-        nx <- getRandomR (100, 200)
-        ny <- getRandomR (100, 200)
-        nvx <- getRandomR (-1, 1)
+        {-nx <- getRandomR (100, 200)-}
+        {-ny <- getRandomR (100, 200)-}
+        {-nvx <- getRandomR (-1, 1)-}
 
-        evAddActor $ newNPC (nx, ny) (nvx, 0)
+        {-evAddActor $ newNPC (nx, ny) (nvx, 0)-}
                                  
-        return self
+        {-return self-}
 
 newNPC :: Point2 -> Point2 -> AnyActor
 newNPC p v = AnyActor NPC { pos = p, vel = v }
