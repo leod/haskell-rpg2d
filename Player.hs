@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Player (newPlayer) where
 
 import Data.Maybe
@@ -32,11 +34,8 @@ instance Actor Player where
                           then Just (dir self)
                           else dirFromInput inp
             vel' = maybe (0, 0) ((^*(2,2)) . dirToVel) walkDir
-
             pos' = pos self ^+ vel' ^+ maybe (0, 0) (strideVel inp) walkDir 
-
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
-
             anim' = if walking' then updateAnim 5 7 $ anim self else fixFrame 0
 
         evMoveCamera (-px pos' + viewWidth `div` 2 - px clip `div` 2,

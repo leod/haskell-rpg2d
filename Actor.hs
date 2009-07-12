@@ -18,6 +18,7 @@ import Control.Monad.Random
 import Control.Monad.Writer
 import Control.Monad.Reader
 import qualified Graphics.UI.SDL as SDL (Event)
+import qualified Graphics.Rendering.OpenGL.GL as GL
 
 import TileMap
 import Util
@@ -146,5 +147,5 @@ collisions acts = IL.mapM f acts
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = IL.mapM_ f acts
     where
-        f (_, AnyActor actor) = render actor sprs >>
-                                rectangle (posRect actor)
+        f (_, AnyActor actor) = render actor sprs
+                                -- >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)

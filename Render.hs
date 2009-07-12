@@ -41,14 +41,12 @@ getSprite :: String -> SpriteMap -> Sprite
 getSprite name map = let spr = fromMaybe (error name) $ name `Map.lookup` map
                      in spr
 
-rectangle :: Rect -> IO ()
-rectangle (Rect x y w h) = GL.renderPrimitive GL.LineLoop $ do
-    GL.color  $ GL.Color3 (1::Double) 0 0 -- TODO: tmp
+rectangle :: GL.Color4 Double -> Rect -> IO ()
+rectangle c (Rect x y w h) = withColor c $ GL.renderPrimitive GL.LineLoop $ do
     GL.vertex $ GL.Vertex3 x1 y1 0
     GL.vertex $ GL.Vertex3 x2 y1 0
     GL.vertex $ GL.Vertex3 x2 y2 0
     GL.vertex $ GL.Vertex3 x1 y2 0
-    GL.color  $ GL.Color3 (1::Double) 1 1
     
     where
         x1 = fromIntegral x :: Double

@@ -34,7 +34,7 @@ renderTileMap tm sm =
     in (withTexture (sprTexture spr) $ GL.renderPrimitive GL.Quads $
         forM_ tiles (\((x', y'), t) ->
                let (x, y) = (fromIntegral x' * tileWidth, fromIntegral y' * tileHeight) :: (Double, Double)
-                   (cx, cy) = (tileWidth*0, tileHeight*9) :: (Double, Double)
+                   (cx, cy) = (tileWidth*7, tileHeight*2) :: (Double, Double)
                    (cw, ch) = (tileWidth, tileHeight) :: (Double, Double)
                    (tx, ty) = (sprWidthRatio spr * (cx / sprWidth spr),
                                sprHeightRatio spr * (cy / sprHeight spr))
@@ -52,4 +52,4 @@ renderTileMap tm sm =
 
                    GL.texCoord $ GL.TexCoord2 tx (th+ty)
                    GL.vertex   $ GL.Vertex2 x (y+ch)))
-       >> renderGrid tm
+        >> renderGrid tm
