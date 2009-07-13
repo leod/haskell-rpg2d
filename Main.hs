@@ -34,6 +34,12 @@ processEvents = foldl f
         f gs (MoveCamera p) = gs { gsCamera = p }
         f gs _ = gs
 
+debugTest :: [Event] -> IO ()
+debugTest = foldl f $ return ()
+    where
+        f io (Debug str) = io >> putStrLn str
+        f io _ = io
+
 getMessages :: [Event] -> [MessageRec]
 getMessages = foldl f []
     where
@@ -54,7 +60,7 @@ pollEvents = poll []
 
             case ev of
                 SDL.NoEvent -> return evs
-                otherwise -> poll $ ev : evs
+                _ -> poll $ ev : evs
 
 -- TODO: IO () result is for debugging, remove later
 updateGS :: GameState -> Input -> (GameState, IO ())
@@ -77,7 +83,7 @@ updateGS gs input =
         -- Process events
         gs' = gs { gsActors = actors'', gsRandom = random' }
                   `processEvents` evs
-    in (gs', print evs)
+    in (gs', debugTest evs)
 
 renderMS :: MainState -> IO ()
 renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
@@ -98,7 +104,7 @@ renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
                                (fromIntegral . py $ gsCamera gs)
                                (0 :: Double)
 
-        --renderTileMap (gsTileMap gs) sprs
+        renderTileMap (gsTileMap gs) sprs
         renderActors (gsActors gs) sprs
 
     SDL.glSwapBuffers
@@ -120,6 +126,8 @@ mainLoop mstate (time, frames) = do
         tm      = gsTileMap gstate
         msgs    = gsMessages gstate
 
+    io
+
     -- Render
     renderMS mstate'
 
@@ -132,7 +140,7 @@ mainLoop mstate (time, frames) = do
                  then (time', 0)
                  else (time, frames+1)
 
-    {-SDL.delay 20-}
+    SDL.delay 20
 
     if inQuit input
         then return ()
@@ -162,7 +170,7 @@ main = do
     print actors
     mainLoop mstate (0, 0)
 
-    where actors = addArrs 109 IL.empty -- $ newEnemy (10, 10) +: newPlayer (100, 100) +: IL.empty
+    where actors = addArrs 20 $ newEnemy (10, 10) +: newPlayer (100, 100) +: IL.empty
           arr = newArrow (0, 0) 0 1 DirLeft 
           addArrs 0 il = il
           addArrs n il = arr +: addArrs (n-1) il

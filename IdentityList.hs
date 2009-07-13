@@ -5,6 +5,7 @@ module IdentityList
     , delete
     , update
     , IdentityList.foldl
+    , foldl'
     , IdentityList.map
     , IdentityList.lookup
     , IdentityList.mapM
@@ -47,14 +48,21 @@ foldl :: (a -> (ILKey, b) -> a) -> a -> IL b -> a
 foldl f z (IL k []) = z
 foldl f z (IL k (a:as)) = IdentityList.foldl f (f z a) $ IL k as
 
+foldl' :: (a -> (ILKey, b) -> a) -> a -> IL b -> a
+foldl' f z (IL k as) = g f z as
+    where
+        g f z [] = z
+        g f z (a:as) = let a' = f z a
+                       in a' `seq` g f a' as
+
 map :: ((ILKey, a) -> b) -> IL a -> IL b
 map f (IL k as) =
     IL k [(k, f a) | a@(k, _) <- as]
 
---sequence :: (Monad m) => IL (m a) -> m (IL a)
+sequence :: (Monad m) => IL (m a) -> m (IL a)
 sequence (IL k as) = liftM (IL k) $ Prelude.mapM (\(k, v) -> liftM ((,) k) v) as
 
-mapM :: (Functor m, Monad m) => ((ILKey, a) -> m b) -> IL a -> m (IL b)
+mapM :: Monad m => ((ILKey, a) -> m b) -> IL a -> m (IL b)
 mapM f = IdentityList.sequence . IdentityList.map f
 
 sequence_ :: (Monad m) => IL (m a) -> m ()

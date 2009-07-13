@@ -10,9 +10,9 @@ import Util
 import Render
 import Anim
 
-data Enemy = Enemy { pos :: Point2
-                   , dir :: Direction
-                   , anim :: Anim
+data Enemy = Enemy { pos :: !Point2
+                   , dir :: !Direction
+                   , anim :: !Anim
                    } deriving Show
 
 clip :: (Int, Int)
@@ -40,9 +40,10 @@ instance Actor Enemy where
                                      (px clip * dirToColumn (dir self), py clip * (animFrame . anim) self)
                                      clip
     
-    posRect self = mkRect (pos self ^+ (7, 7)) (20, 20)
+    posRect self = mkRect (pos self ^+^ 7) (20, 20)
 
-    collision _ self = evRemoveSelf >> return self
+    message (Impact dmg vel) self = evRemoveSelf >> return self
+    message _ self = return self
 
 newEnemy :: Point2 -> AnyActor
 newEnemy p = AnyActor Enemy { pos = p
