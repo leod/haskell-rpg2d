@@ -9,7 +9,7 @@ import Actor
 import Util
 import Render
 
-data NPC = NPC { pos :: Point2
+data NPC = NPC { pos :: !Point2
                , vel :: Point2
                } deriving Show
 

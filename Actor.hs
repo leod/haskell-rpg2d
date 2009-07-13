@@ -1,9 +1,9 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Actor
-    ( Event(AddActor, RemoveActor, SendMessage, MoveCamera)
+    ( Event(..)
     , input
-    , evAddActor, evRemoveSelf, evMessage, evMoveCamera
+    , evAddActor, evRemoveSelf, evMessage, evMoveCamera, evDebug
     , selfId
     , Message(Impact)
     , MessageRec
@@ -15,13 +15,14 @@ module Actor
     , collisions
     ) where
 
-import Control.Monad.Random
 import Control.Monad.Writer.Strict
+import Control.Monad.State.Strict
 import Control.Monad.Reader
 import qualified Graphics.UI.SDL as SDL (Event)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 
 import TileMap
+import MonadRandom
 import Util
 import Render
 import Input
@@ -33,6 +34,7 @@ data Event = AddActor AnyActor
            | RemoveActor ActorId
            | SendMessage MessageRec
            | MoveCamera Point2
+           | Debug String -- Temp
     deriving Show
 
 -- Actors can send messages to each other, this is the only way in which they can influence each other
@@ -47,6 +49,9 @@ input = liftM usInput ask
 
 event :: Event -> Act ()
 event = tell . return 
+
+evDebug :: String -> Act ()
+evDebug = event . Debug
 
 evAddActor :: AnyActor -> Act ()
 evAddActor = event . AddActor
@@ -70,16 +75,25 @@ selfId :: Act ActorId
 selfId = liftM usSelfId ask
 
 -- Monad in which actors are updated
-type Act = ReaderT UpdateState (Writer [Event])
+type Act = RandT DefGen (ReaderT UpdateState (Writer [Event]))
 
-runAct :: Act a -> StdGen -> UpdateState -> (a, StdGen, [Event])
-runAct a g s = let c = runReaderT a s
-                   (actor, evs) = runWriter c
-               in (actor, g, evs) 
+runAct :: Act a -> DefGen -> UpdateState -> (a, DefGen, [Event])
+runAct a g s = let b = runRandT a g
+                   c = runReaderT b s
+                   ((res, g'), evs) = runWriter c
+               in (res, g', evs)
+
+{-type Act = ReaderT UpdateState (Writer [Event])-}
+
+{-runAct :: Act a -> DefGen -> UpdateState -> (a, DefGen, [Event])-}
+{-runAct a g s = let c = runReaderT a s-}
+                   {-(res, evs) = runWriter c-}
+               {-in (res, g, evs) -}
 
 -- Actors need to be an instance of this type class
 class Show a => Actor a where
     neededResources :: a -> [FilePath]
+    neededResources _ = []
 
     update :: a -> Act a
     render :: SpriteMap -> a -> IO ()
@@ -131,22 +145,25 @@ dispatchMessages = foldl f . return
                 Nothing -> mlist -- Actor was deleted before message reached it
 
 collisions :: ActorList -> Act ActorList
-collisions acts = {-# SCC "collisions" #-} IL.mapM f acts
+collisions acts = IL.mapM testAll acts
     where
-        f :: (ActorId, AnyActor) -> Act AnyActor
-        f (id, actor@(AnyActor aa)) = withSelfId id $ IL.foldl g (return actor) acts
+        testAll :: (ActorId, AnyActor) -> Act AnyActor
+        testAll (id, actor@(AnyActor aa)) = withSelfId id $ IL.foldl' testOne (return actor) acts
             where
                 -- Test intersection of one actor with all other actors
-                g :: Act AnyActor -> (ActorId, AnyActor) -> Act AnyActor
-                g mactor arec@(id2, AnyActor actor2) 
+                testOne :: Act AnyActor -> (ActorId, AnyActor) -> Act AnyActor
+                testOne mactor arec@(id2, AnyActor actor2) 
                     | id2 == id = mactor
                     | otherwise = do
-                        AnyActor actor <- mactor
-                        mactor
+                        AnyActor actor <- mactor 
 
-                        {-if rectIntersect (posRect actor) (posRect actor2) -}
-                            {-then liftM AnyActor $ collision arec actor -}
-                            {-else mactor-}
+                        if rectIntersect (posRect actor) (posRect actor2)
+                            then liftM AnyActor $ collision arec actor
+                            else
+                                return $ AnyActor actor
+                                -- I don't get it! Change that line to just 'mactor' => 0 FPS without -O2
+                                -- But return $ AnyActor actor and mactor should be just the same?
+                                -- It's probably lazy evalutation again :)
 
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = IL.mapM_ f acts

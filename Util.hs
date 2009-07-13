@@ -2,7 +2,8 @@ module Util
     ( DefGen
     , Point2
     , Rect(Rect), rectIntersect, mkRect
-    , (^+), (^*)
+    , (^+), (^-), (^*)
+    , (^+^), (^-^), (^*^)
     , px, py
     , Direction(..)
     , dirToVel
@@ -22,14 +23,33 @@ rectIntersect (Rect x1 y1 w1 h1) (Rect x2 y2 w2 h2) =
 mkRect :: Point2 -> Point2 -> Rect
 mkRect (x, y) (w, h) = Rect x y w h
 
+-- Wow, those are some awfully named operators
+
 infixl 6 ^+
+infixl 6 ^-
 infixl 7 ^*
 
 (^+) :: Point2 -> Point2 -> Point2
 (x1, y1) ^+ (x2, y2) = (x1 + x2, y1 + y2)
 
+(^-) :: Point2 -> Point2 -> Point2
+(x1, y1) ^- (x2, y2) = (x1 - x2, y1 - y2)
+
 (^*) :: Point2 -> Point2 -> Point2
 (x1, y1) ^* (x2, y2) = (x1 * x2, y1 * y2)
+
+infixl 6 ^+^
+infixl 6 ^-^
+infixl 7 ^*^
+
+(^*^) :: Point2 -> Int -> Point2
+(x1, y1) ^*^ i = (x1 * i, y1 * i)
+
+(^-^) :: Point2 -> Int -> Point2
+(x1, y1) ^-^ i = (x1 - i, y1 - i)
+
+(^+^) :: Point2 -> Int -> Point2
+(x1, y1) ^+^ i = (x1 + i, y1 + i)
 
 {-instance Num Point2 where-}
     {-(x1, y1) + (x2, y2) = (x1 + x2, y1 + y2)-}
