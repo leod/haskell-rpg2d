@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards, NamedFieldPuns #-}
 
 module Player (newPlayer) where
 
@@ -35,10 +35,10 @@ instance Actor Player where
         let walkDir = if walking self && inputHasDir (dir self) inp
                           then Just (dir self)
                           else dirFromInput inp
-            vel' = maybe (0, 0) ((^*^ 2) . dirToVel) walkDir
-            pos' = pos self ^+ vel' ^+ maybe (0, 0) (strideVel inp) walkDir 
+            vel' = maybe (0, 0) ((^* 2) . dirToVel) walkDir
+            pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir 
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
-            anim' = if walking' then updateAnim 5 7 $ anim self else fixFrame 0
+            anim' = if walking' then updateAnim 4 7 $ anim self else fixFrame 0
 
             lastShot' = if lastShot self > 0 then lastShot self - 1 else 0
             doShoot = inSpace inp && lastShot' == 0
@@ -49,7 +49,7 @@ instance Actor Player where
         myId <- selfId
 
         when doShoot $
-            evAddActor (newArrow (pos self) myId 5 (dir self))
+            evAddActor (newArrow (pos self ^+^ spawnOffset self) myId 7 (dir self))
 
         return self { pos = pos'
                     , dir = fromMaybe (dir self) walkDir
@@ -58,7 +58,7 @@ instance Actor Player where
                     , lastShot = if doShoot then 20 else lastShot'
                     }
         
-    posRect self = mkRect (pos self ^+^ 4) (12, 17)
+    posRect self = mkRect (pos self ^+ 4) (12, 17)
     render sprs self = spriteClipped (getSprite file sprs)
                                      (pos self)
                                      (px clip * (animFrame . anim) self, py clip * dirToRow (dir self)) clip
@@ -72,6 +72,12 @@ newPlayer p = AnyActor
            , anim = fixFrame 0 
            , lastShot = 0
            }
+
+spawnOffset :: Player -> Point2
+spawnOffset Player { dir=DirLeft } = (-6, 8)
+spawnOffset Player { dir=DirRight } = (10, 8)
+spawnOffset Player { dir=DirUp } = (5, -8)
+spawnOffset Player { dir=DirDown } = (5, 8)
 
 inputHasDir :: Direction -> Input -> Bool
 inputHasDir DirLeft = inLArrow

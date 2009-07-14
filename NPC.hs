@@ -16,7 +16,7 @@ data NPC = NPC { pos :: !Point2
 instance Actor NPC where
     neededResources _ = ["npc.bmp"]
 
-    update self = do let pos' = pos self ^+ vel self 
+    update self = do let pos' = pos self ^+^ vel self 
                          vel' = if px pos' > 640 then (-1, 0)
                                 else if px pos' < 0 then (1, 0)
                                 else vel self
