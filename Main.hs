@@ -161,7 +161,7 @@ main = do
                            , gsActors = actors
                            , gsRandom = mkStdGen randInit
                            , gsMessages = []
-                           , gsCamera = (0, 0)
+                           , gsCamera = undefined
                            }
         mstate = MainState { msGameState = gstate
                            , msSprites = sprs
