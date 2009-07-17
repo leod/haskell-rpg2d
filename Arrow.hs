@@ -29,11 +29,10 @@ instance Actor Arrow where
                                      (0, dirToRow (dir self) * 15)
                                      (15, 15)
     posRect Arrow { pos, dir } = mkRect pos $ size dir
-        where
-            size DirLeft = (15, 5)
-            size DirRight = size DirLeft
-            size DirUp = (5, 15)
-            size DirDown = size DirUp
+        where size DirLeft = (15, 5)
+              size DirRight = size DirLeft
+              size DirUp = (5, 15)
+              size DirDown = size DirUp
 
     collision (id, actor) self = do
         when (id /= owner self) $ do

@@ -48,11 +48,10 @@ rectangle c (Rect x y w h) = withColor c $ GL.renderPrimitive GL.LineLoop $ do
     GL.vertex $ GL.Vertex3 x2 y2 0
     GL.vertex $ GL.Vertex3 x1 y2 0
     
-    where
-        x1 = fromIntegral x :: Double
-        y1 = fromIntegral y :: Double
-        x2 = x1 + fromIntegral w :: Double
-        y2 = y1 + fromIntegral h :: Double
+    where x1 = fromIntegral x :: Double
+          y1 = fromIntegral y :: Double
+          x2 = x1 + fromIntegral w :: Double
+          y2 = y1 + fromIntegral h :: Double
 
 -- The following is taken mostly from Graphics.DrawingCombinators
 
@@ -76,11 +75,10 @@ padSurface surf
         SDL.setAlpha surf [] 0xff
         SDL.blitSurface surf Nothing surf' Nothing
         return surf'
-    where
-        oldWidth = SDL.surfaceGetWidth surf
-        oldHeight = SDL.surfaceGetHeight surf
-        newWidth = nextPowerOf2 oldWidth
-        newHeight = nextPowerOf2 oldHeight
+    where oldWidth = SDL.surfaceGetWidth surf
+          oldHeight = SDL.surfaceGetHeight surf
+          newWidth = nextPowerOf2 oldWidth
+          newHeight = nextPowerOf2 oldHeight
 
 -- Create OGL texture from SDL surface
 surfaceToSprite :: SDL.Surface -> IO Sprite
