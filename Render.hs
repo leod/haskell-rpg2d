@@ -129,7 +129,7 @@ surfaceToSprite surf = do
     return sprite
 
 loadSprite :: FilePath -> IO Sprite
-loadSprite path = putStrLn ("loading " ++ path) >> Image.load path >>= surfaceToSprite
+loadSprite path = putStrLn ("loading " ++ path) >> Image.load ("data/" ++ path) >>= surfaceToSprite
 
 withTexture :: GL.TextureObject -> IO a -> IO a
 withTexture tex act = do
