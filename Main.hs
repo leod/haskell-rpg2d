@@ -27,25 +27,22 @@ import Arrow
 
 processEvents :: GameState -> [Event] -> GameState
 processEvents = foldl f
-    where
-        f :: GameState -> Event -> GameState
-        f gs (AddActor a) = gs { gsActors = a `IL.insert` gsActors gs  }
-        f gs (RemoveActor id) = gs { gsActors = id `IL.delete` gsActors gs }
-        f gs (MoveCamera p) = gs { gsCamera = p }
-        f gs _ = gs
+    where f :: GameState -> Event -> GameState
+          f gs (AddActor a) = gs { gsActors = a `IL.insert` gsActors gs  }
+          f gs (RemoveActor id) = gs { gsActors = id `IL.delete` gsActors gs }
+          f gs (MoveCamera p) = gs { gsCamera = p }
+          f gs _ = gs
 
 debugTest :: [Event] -> IO ()
 debugTest = foldl f $ return ()
-    where
-        f io (Debug str) = io >> putStrLn str
-        f io _ = io
+    where f io (Debug str) = io >> putStrLn str
+          f io _ = io
 
 getMessages :: [Event] -> [MessageRec]
 getMessages = foldl f []
-    where
-        f :: [MessageRec] -> Event -> [MessageRec]
-        f msgs (SendMessage msg) = msg : msgs
-        f msgs _ = msgs
+    where f :: [MessageRec] -> Event -> [MessageRec]
+          f msgs (SendMessage msg) = msg : msgs
+          f msgs _ = msgs
 
 data MainState = MainState { msGameState :: GameState
                            , msSprites :: SpriteMap
@@ -54,13 +51,12 @@ data MainState = MainState { msGameState :: GameState
 
 pollEvents :: IO [SDL.Event]
 pollEvents = poll []
-    where 
-        poll evs = do
-            ev <- SDL.pollEvent
+    where poll evs = do
+              ev <- SDL.pollEvent
 
-            case ev of
-                SDL.NoEvent -> return evs
-                _ -> poll $ ev : evs
+              case ev of
+                  SDL.NoEvent -> return evs
+                  _ -> poll $ ev : evs
 
 -- TODO: IO () result is for debugging, remove later
 updateGS :: GameState -> Input -> (GameState, IO ())
