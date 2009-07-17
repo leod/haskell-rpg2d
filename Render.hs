@@ -38,8 +38,7 @@ addSprites :: SpriteMap -> [String] -> IO SpriteMap
 addSprites = foldM addSprite
 
 getSprite :: String -> SpriteMap -> Sprite
-getSprite name map = let spr = fromMaybe (error name) $ name `Map.lookup` map
-                     in spr
+getSprite name = fromMaybe (error name) . Map.lookup name
 
 rectangle :: GL.Color4 Double -> Rect -> IO ()
 rectangle c (Rect x y w h) = withColor c $ GL.renderPrimitive GL.LineLoop $ do

@@ -25,7 +25,7 @@ dirToColumn DirLeft = 1
 dirToColumn DirUp = 2
 dirToColumn DirRight = 3
 
-vel self = dirToVel $ dir self
+vel = dirToVel . dir
 
 instance Actor Enemy where
     neededResources _ = ["enemy.png"]
