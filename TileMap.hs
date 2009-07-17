@@ -24,8 +24,7 @@ renderGrid tm = withColor (GL.Color4 0 0 1 0.2) $ GL.renderPrimitive GL.Lines $ 
        GL.vertex $ GL.Vertex2 (0::Double) (fromIntegral $ y*tileHeight)
        GL.vertex $ GL.Vertex2 (fromIntegral $ w*tileWidth) (fromIntegral $ y*tileHeight :: Double))
 
-    where
-        ((_, _), (w, h)) = bounds tm
+    where ((_, _), (w, h)) = bounds tm
 
 renderTileMap :: TileMap -> SpriteMap -> IO ()
 renderTileMap tm sm =

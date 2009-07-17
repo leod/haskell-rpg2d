@@ -121,52 +121,43 @@ type ActorList = IL AnyActor
 withSelfId :: ActorId -> Act a -> Act a
 withSelfId id = local (\s -> s { usSelfId = id })
 
-mapActors :: (AnyActor -> Act AnyActor) -> ActorList -> Act ActorList
+mapActors :: ((ActorId, AnyActor) -> Act AnyActor) -> ActorList -> Act ActorList
 mapActors g acts = IL.mapM f acts
-    where
-        f :: (ActorId, AnyActor) -> Act AnyActor
-        f (id, actor) = withSelfId id (g actor)
+    where f :: (ActorId, AnyActor) -> Act AnyActor
+          f arec@(id, actor) = withSelfId id $ g arec
 
-updateActors :: ActorList -> Act ActorList
-updateActors = mapActors (\(AnyActor actor) -> do
-    actor' <- update actor
-    return $ AnyActor actor')
+updateActors = mapActors (\(_, AnyActor actor) -> return . AnyActor =<< update actor)
 
 dispatchMessages :: ActorList -> [MessageRec] -> Act ActorList
 dispatchMessages = foldl f . return 
-    where
-        f :: Act ActorList -> MessageRec -> Act ActorList 
-        f mlist (MessageRec from to msg) = do
-            list <- mlist
-            case to `IL.lookup` list of
-                Just (AnyActor actor) -> do
-                    actor' <- withSelfId to $ message msg actor 
-                    return $ IL.update to (AnyActor actor') list
-                Nothing -> mlist -- Actor was deleted before message reached it
+    where f :: Act ActorList -> MessageRec -> Act ActorList 
+          f mlist (MessageRec from to msg) = do
+              list <- mlist
+              case to `IL.lookup` list of
+                  Just (AnyActor actor) -> do
+                      actor' <- withSelfId to $ message msg actor 
+                      return $ IL.update to (AnyActor actor') list
+                  Nothing -> mlist -- Actor was deleted before message reached it
 
 collisions :: ActorList -> Act ActorList
 collisions acts = IL.mapM testAll acts
-    where
-        testAll :: (ActorId, AnyActor) -> Act AnyActor
-        testAll (id, actor@(AnyActor aa)) = withSelfId id $ IL.foldl' testOne (return actor) acts
-            where
-                -- Test intersection of one actor with all other actors
-                testOne :: Act AnyActor -> (ActorId, AnyActor) -> Act AnyActor
-                testOne mactor arec@(id2, AnyActor actor2) 
-                    | id2 == id = mactor
-                    | otherwise = do
-                        AnyActor actor <- mactor 
-
-                        if rectIntersect (posRect actor) (posRect actor2)
-                            then liftM AnyActor $ collision arec actor
-                            else
-                                return $ AnyActor actor
-                                -- I don't get it! Change that line to just 'mactor' => 0 FPS without -O2
-                                -- But return $ AnyActor actor and mactor should be just the same?
-                                -- It's probably lazy evalutation again :)
+    where testAll :: (ActorId, AnyActor) -> Act AnyActor
+          testAll (id, actor@(AnyActor aa)) = withSelfId id $ IL.foldl' testOne (return actor) acts
+              where -- Test intersection of one actor with all other actors
+                    testOne :: Act AnyActor -> (ActorId, AnyActor) -> Act AnyActor
+                    testOne mactor arec@(id2, AnyActor actor2) 
+                        | id2 == id = mactor
+                        | otherwise = do
+                            AnyActor actor <- mactor 
+                            if rectIntersect (posRect actor) (posRect actor2)
+                                then liftM AnyActor $ collision arec actor
+                                else
+                                    return $ AnyActor actor
+                                    -- I don't get it! Change that line to just 'mactor' => 0 FPS without -O2
+                                    -- But return $ AnyActor actor and mactor should be just the same?
+                                    -- It's probably lazy evaluation again :)
 
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = IL.mapM_ f acts
-    where
-        f (_, AnyActor actor) = render sprs actor 
-                                >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)
+    where f (_, AnyActor actor) = render sprs actor 
+                                  >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)

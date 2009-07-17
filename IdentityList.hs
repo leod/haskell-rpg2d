@@ -38,11 +38,10 @@ infixr 5 +:
 delete :: ILKey -> IL a -> IL a
 delete k (IL nk as) =
     IL nk (f as) 
-    where
-        f [] = []
-        f as@(a@(k', _) : ks) | k > k'    = as
-                              | k == k'   = ks
-                              | otherwise = a : f ks
+    where f [] = []
+          f as@(a@(k', _) : ks) | k > k'    = as
+                                | k == k'   = ks
+                                | otherwise = a : f ks
 
 foldl :: (a -> (ILKey, b) -> a) -> a -> IL b -> a
 foldl f z (IL k []) = z
@@ -50,10 +49,9 @@ foldl f z (IL k (a:as)) = IdentityList.foldl f (f z a) $ IL k as
 
 foldl' :: (a -> (ILKey, b) -> a) -> a -> IL b -> a
 foldl' f z (IL k as) = g f z as
-    where
-        g f z [] = z
-        g f z (a:as) = let a' = f z a
-                       in a' `seq` g f a' as
+    where g f z [] = z
+          g f z (a:as) = let a' = f z a
+                         in a' `seq` g f a' as
 
 map :: ((ILKey, a) -> b) -> IL a -> IL b
 map f (IL k as) =
@@ -67,10 +65,9 @@ mapM f = IdentityList.sequence . IdentityList.map f
 
 sequence_ :: (Monad m) => IL (m a) -> m ()
 sequence_ (IL k as) = f as
-    where
-        f :: (Monad m) => [(ILKey, m a)] -> m ()
-        f [] = return ()
-        f ((_, x):xs) = x >> f xs 
+    where f :: (Monad m) => [(ILKey, m a)] -> m ()
+          f [] = return ()
+          f ((_, x):xs) = x >> f xs 
 
 mapM_ :: (Monad m) => ((ILKey, a) -> m b) -> IL a -> m ()
 mapM_ f = IdentityList.sequence_ . IdentityList.map f
@@ -80,6 +77,5 @@ lookup k (IL _ as) = Prelude.lookup k as
 
 update :: ILKey -> a -> IL a -> IL a
 update k x = IdentityList.map f
-    where
-        f (k', x') | k == k'   = x
-                   | otherwise = x'
+    where f (k', x') | k == k'   = x
+                     | otherwise = x'
