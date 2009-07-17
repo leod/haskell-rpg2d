@@ -163,7 +163,7 @@ collisions acts = IL.mapM testAll acts
                                 return $ AnyActor actor
                                 -- I don't get it! Change that line to just 'mactor' => 0 FPS without -O2
                                 -- But return $ AnyActor actor and mactor should be just the same?
-                                -- It's probably lazy evalutation again :)
+                                -- It's probably lazy evaluation again :)
 
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = IL.mapM_ f acts
