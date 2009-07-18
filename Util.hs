@@ -85,7 +85,7 @@ dirFromVec :: Point2 -> Direction
 dirFromVec (x, y) | x < 0 && x < y  = DirLeft
                   | y < 0 && y <= x = DirUp
                   | x > 0 && x > y  = DirRight
-                  | otherwise       = DirUp
+                  | otherwise       = DirDown
 
 instance Random Direction where
     randomR _ = error "don't use randomR for Direction"
