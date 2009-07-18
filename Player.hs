@@ -35,7 +35,7 @@ instance Actor Player where
         let walkDir = if walking self && inputHasDir (dir self) inp
                           then Just (dir self)
                           else dirFromInput inp
-            vel' = maybe (0, 0) ((^* 2) . dirToVel) walkDir
+            vel' = maybe (0, 0) ((^* 3) . dirToVel) walkDir
             pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir 
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
             anim' = if walking' then updateAnim 4 7 $ anim self else fixFrame 0

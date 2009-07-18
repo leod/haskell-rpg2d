@@ -20,9 +20,10 @@ import Control.Monad.State.Strict
 import Control.Monad.Reader
 import qualified Graphics.UI.SDL as SDL (Event)
 import qualified Graphics.Rendering.OpenGL.GL as GL
+import Control.Monad.Random
 
 import TileMap
-import MonadRandom
+{-import MonadRandom-}
 import Util
 import Render
 import Input
