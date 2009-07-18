@@ -9,6 +9,7 @@ import Data.Map as Map
 import qualified Graphics.UI.SDL as SDL
 import Graphics.Rendering.OpenGL as GL
 import Foreign (Word32)
+import Data.List (foldl')
 
 import Actor
 import Input
@@ -26,7 +27,7 @@ import IdentityList ((+:))
 import Arrow
 
 processEvents :: GameState -> [Event] -> GameState
-processEvents = foldl f
+processEvents = foldl' f
     where f :: GameState -> Event -> GameState
           f gs (AddActor a) = gs { gsActors = a `IL.insert` gsActors gs  }
           f gs (RemoveActor id) = gs { gsActors = id `IL.delete` gsActors gs }
@@ -34,12 +35,12 @@ processEvents = foldl f
           f gs _ = gs
 
 debugTest :: [Event] -> IO ()
-debugTest = foldl f $ return ()
+debugTest = foldl' f $ return ()
     where f io (Debug str) = io >> putStrLn str
           f io _ = io
 
 getMessages :: [Event] -> [MessageRec]
-getMessages = foldl f []
+getMessages = foldl' f []
     where f :: [MessageRec] -> Event -> [MessageRec]
           f msgs (SendMessage msg) = msg : msgs
           f msgs _ = msgs
@@ -149,7 +150,7 @@ main = do
     GL.clearColor $= Color4 1 1 1 0
     GL.viewport $= (Position 0 0, Size 800 600)
 
-    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png", "tileset.png", "ts.png", "arrow.png"] -- TMP!
+    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png", "tileset.png", "ts.png", "arrow.png", "enemy2.png"] -- TMP!
 
     randInit <- randomIO
 

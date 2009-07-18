@@ -8,6 +8,8 @@ module Util
     , px, py
     , Direction(..)
     , dirToVel
+    , dirFromVec
+    , oppositeDir
     ) where
 
 import System.Random
@@ -78,3 +80,25 @@ dirToVel DirLeft = (-1, 0)
 dirToVel DirRight = (1, 0)
 dirToVel DirUp = (0, -1)
 dirToVel DirDown = (0, 1)
+
+dirFromVec :: Point2 -> Direction
+dirFromVec (x, y) | x < 0 && x < y  = DirLeft
+                  | y < 0 && y <= x = DirUp
+                  | x > 0 && x > y  = DirRight
+                  | otherwise       = DirUp
+
+instance Random Direction where
+    randomR _ = error "don't use randomR for Direction"
+    random g = let (i, g') = randomR (0, 3) g
+                   d = case i :: Int of
+                           0 -> DirLeft
+                           1 -> DirRight
+                           2 -> DirUp
+                           3 -> DirDown
+               in (d, g')
+
+oppositeDir :: Direction -> Direction
+oppositeDir DirLeft = DirRight
+oppositeDir DirRight = DirLeft
+oppositeDir DirUp = DirDown
+oppositeDir DirDown = DirUp
