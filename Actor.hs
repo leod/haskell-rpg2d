@@ -1,4 +1,4 @@
-{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ExistentialQuantification, FlexibleContexts #-}
 
 module Actor
     ( Event(..)
@@ -45,25 +45,26 @@ data Message = Impact Int Point2
 data MessageRec = MessageRec ActorId ActorId Message -- Sender Receiver Message
     deriving Show
 
-input :: Act Input
+--input :: Act Input
+input :: MonadReader UpdateState m => m Input
 input = liftM usInput ask
 
-event :: Event -> Act ()
+event :: MonadWriter [Event] m => Event -> m ()
 event = tell . return 
 
-evDebug :: String -> Act ()
+evDebug :: MonadWriter [Event] m => String -> m ()
 evDebug = event . Debug
 
-evAddActor :: AnyActor -> Act ()
+evAddActor :: MonadWriter [Event] m => AnyActor -> m ()
 evAddActor = event . AddActor
 
-evRemoveSelf :: Act ()
+evRemoveSelf :: (MonadReader UpdateState m, MonadWriter [Event] m) => m ()
 evRemoveSelf = ask >>= event . RemoveActor . usSelfId
 
-evMessage :: ActorId -> Message -> Act ()
+evMessage :: (MonadReader UpdateState m, MonadWriter [Event] m) => ActorId -> Message -> m ()
 evMessage to msg = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us) to msg 
 
-evMoveCamera :: Point2 -> Act ()
+evMoveCamera :: MonadWriter [Event] m => Point2 -> m ()
 evMoveCamera = event . MoveCamera
 
 -- Reader state for actors when updating
@@ -72,7 +73,8 @@ data UpdateState = UpdateState { usTileMap :: TileMap
                                , usSelfId :: ActorId 
                                }
 
-selfId :: Act ActorId
+{-selfId :: MonadReader a m => m ActorId-}
+selfId :: MonadReader UpdateState m => m ActorId
 selfId = liftM usSelfId ask
 
 -- Monad in which actors are updated
