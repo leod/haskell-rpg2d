@@ -40,7 +40,6 @@ instance Actor Arrow where
             evRemoveSelf
 
         return self
-            
 
 newArrow :: Point2 -> ActorId -> Int -> Direction -> AnyActor
 newArrow pos owner speed dir = AnyActor Arrow { .. }

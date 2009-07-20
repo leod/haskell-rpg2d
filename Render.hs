@@ -2,6 +2,7 @@ module Render
     ( Sprite
     , SpriteMap, newSpriteMap , addSprites, addSprite, getSprite
     , rectangle
+    , emptySprite, renderToSprite
     , sprTexture, sprWidth, sprHeight, sprWidthRatio, sprHeightRatio
     , surfaceToSprite, loadSprite
     , spriteClipped, sprite
@@ -19,6 +20,7 @@ import Graphics.UI.SDL.Image as Image
 import Graphics.Rendering.OpenGL.GL (($=), Vector3(..))
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import Graphics.Rendering.OpenGL.GLU as GLU
+import Foreign.Ptr (nullPtr)
 
 import Util
 
@@ -51,6 +53,46 @@ rectangle c (Rect x y w h) = withColor c $ GL.renderPrimitive GL.LineLoop $ do
           y1 = fromIntegral y :: Double
           x2 = x1 + fromIntegral w :: Double
           y2 = y1 + fromIntegral h :: Double
+
+emptySprite :: Int -> Int -> IO Sprite
+emptySprite w h = do
+    [tex] <- GL.genObjectNames 1
+
+    let w' = nextPowerOf2 w
+        h' = nextPowerOf2 h
+    
+    withTexture tex $ do
+        GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
+        --GL.textureFilter GL.Texture2D $= ((GL.Linear', Nothing), GL.Linear')
+        GL.texImage2D Nothing GL.NoProxy 0 GL.RGB'
+                      (GL.TextureSize2D (fromIntegral w') (fromIntegral h'))
+                      0
+                      (GL.PixelData GL.RGB GL.UnsignedByte nullPtr)
+
+    let sprite = Sprite { sprTexture = tex
+                        , sprWidthRatio = fromIntegral w / fromIntegral w'
+                        , sprHeightRatio = fromIntegral h / fromIntegral h'
+                        , sprWidth = fromIntegral w
+                        , sprHeight = fromIntegral h
+                        }
+
+    addFinalizer sprite $ do
+        putStrLn "freeing empty texture"
+        GL.deleteObjectNames [sprTexture sprite]
+
+    return sprite
+
+renderToSprite :: Sprite -> IO a -> IO a
+renderToSprite spr act =
+    GL.preservingAttrib [GL.ViewportAttributes] $ do
+        GL.viewport $= (GL.Position 0 0, GL.Size (floor . sprWidth $ spr)
+                                                 (floor . sprHeight $ spr))
+        res <- act
+        withTexture (sprTexture spr) $
+            GL.copyTexSubImage2D Nothing 0 (GL.TexturePosition2D 0 0) (GL.Position 0 0)
+                                 (GL.TextureSize2D (floor . sprWidth $ spr)
+                                                   (floor . sprHeight $ spr))
+        return res
 
 -- The following is taken mostly from Graphics.DrawingCombinators
 
@@ -126,7 +168,8 @@ surfaceToSprite surf = do
     return sprite
 
 loadSprite :: FilePath -> IO Sprite
-loadSprite path = putStrLn ("loading " ++ path) >> Image.load ("data/" ++ path) >>= surfaceToSprite
+loadSprite path = putStrLn ("loading sprite " ++ path) >>
+                  Image.load ("data/" ++ path) >>= surfaceToSprite
 
 withTexture :: GL.TextureObject -> IO a -> IO a
 withTexture tex act = do
