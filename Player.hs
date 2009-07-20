@@ -35,10 +35,11 @@ instance Actor Player where
         let walkDir = if walking self && inputHasDir (dir self) inp
                           then Just (dir self)
                           else dirFromInput inp
-            vel' = maybe (0, 0) ((^* 3) . dirToVel) walkDir
-            pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir 
+            runMult = if inCtrl inp then 2 else 1
+            vel' = maybe (0, 0) ((^* 3) . dirToVel) walkDir ^*^ (runMult, runMult)
+            pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir  
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
-            anim' = if walking' then updateAnim 4 7 $ anim self else fixFrame 0
+            anim' = if walking' then updateAnim (4 `div` runMult) 7 $ anim self else fixFrame 0
 
             lastShot' = if lastShot self > 0 then lastShot self - 1 else 0
             doShoot = inSpace inp && lastShot' == 0
@@ -76,8 +77,8 @@ newPlayer p = AnyActor
 spawnOffset :: Player -> Point2
 spawnOffset Player { dir=DirLeft } = (-6, 8)
 spawnOffset Player { dir=DirRight } = (10, 8)
-spawnOffset Player { dir=DirUp } = (5, -8)
-spawnOffset Player { dir=DirDown } = (5, 8)
+spawnOffset Player { dir=DirUp } = (5, 8)
+spawnOffset Player { dir=DirDown } = (5, -8)
 
 inputHasDir :: Direction -> Input -> Bool
 inputHasDir DirLeft = inLArrow
@@ -93,10 +94,10 @@ dirFromInput Input { inDArrow = True } = Just DirDown
 dirFromInput _                         = Nothing
 
 strideVel :: Input -> Direction -> Point2
-strideVel Input { inUArrow = True } DirLeft  = (0, -1)
-strideVel Input { inDArrow = True } DirLeft  = (0, 1)
-strideVel Input { inUArrow = True } DirRight = (0, -1)
-strideVel Input { inDArrow = True } DirRight = (0, 1)
+strideVel Input { inUArrow = True } DirLeft  = (0, 1)
+strideVel Input { inDArrow = True } DirLeft  = (0, -1)
+strideVel Input { inUArrow = True } DirRight = (0, 1)
+strideVel Input { inDArrow = True } DirRight = (0, -1)
 strideVel Input { inLArrow = True } DirUp    = (-1, 0)
 strideVel Input { inRArrow = True } DirUp    = (1, 0)
 strideVel Input { inLArrow = True } DirDown  = (-1, 0)

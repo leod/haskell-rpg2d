@@ -43,7 +43,7 @@ instance Actor Enemy where
 
         v <- liftM dirToVel $ get dir
         ve <- get extraVel
-        pos %: (^+^ v) . (^+^ ve) 
+        pos %: (^+^ (v ^+^ ve))
 
         pos' <- get pos
         dir' <- get dir
@@ -60,7 +60,7 @@ instance Actor Enemy where
                                      (px clip * dirToColumn (dir_ self), py clip * (animFrame . anim_) self)
                                      clip
     
-    posRect self = mkRect (pos_ self ^+ 7) (20, 20)
+    posRect self = mkRect (pos_ self ^+^ (5, 12)) (20, 20)
 
     message (Impact dmg imvel) self = do
         return self { extraVel_ = imvel ^* 3 ^+^ vel self

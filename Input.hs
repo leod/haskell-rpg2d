@@ -33,6 +33,7 @@ updateInput = foldl f
           keyDown inp SDLK_UP = inp { inUArrow = True }
           keyDown inp SDLK_DOWN = inp { inDArrow = True }
           keyDown inp SDLK_SPACE = inp { inSpace = True }
+          keyDown inp SDLK_LCTRL = inp { inCtrl = True }
           keyDown inp _ = inp
 
           keyUp inp SDLK_LEFT = inp { inLArrow = False }
@@ -40,4 +41,5 @@ updateInput = foldl f
           keyUp inp SDLK_UP = inp { inUArrow = False }
           keyUp inp SDLK_DOWN = inp { inDArrow = False }
           keyUp inp SDLK_SPACE = inp { inSpace = False }
+          keyUp inp SDLK_LCTRL = inp { inCtrl = False }
           keyUp inp _ = inp

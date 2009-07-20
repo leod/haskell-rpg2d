@@ -6,13 +6,15 @@ data Anim = Anim { counter :: Int
 
 updateAnim :: Int -> Int -> Anim -> Anim
 updateAnim frameTime endFrame anim =
-    let counter' = if counter anim == frameTime
+    let nextFrame = counter anim >= frameTime
+        counter' = if nextFrame
                        then 0
                        else counter anim + 1
-        frame' = if counter' == frameTime
-                     then if frame anim == endFrame
-                         then 0
-                         else frame anim + 1
+        frame' = if nextFrame
+                     then
+                         if frame anim == endFrame
+                             then 0
+                             else frame anim + 1
                      else frame anim
     in anim { counter = counter'
             , frame = frame'

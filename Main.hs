@@ -8,6 +8,7 @@ import System.Random
 import Data.Map as Map
 import qualified Graphics.UI.SDL as SDL
 import Graphics.Rendering.OpenGL as GL
+import Graphics.Rendering.FTGL as FTGL
 import Foreign (Word32)
 import Data.List (foldl')
 
@@ -48,6 +49,7 @@ getMessages = foldl' f []
 data MainState = MainState { msGameState :: GameState
                            , msSprites :: SpriteMap
                            , msInput :: Input
+                           , msFont :: FTGL.Font
                            }
 
 pollEvents :: IO [SDL.Event]
@@ -83,7 +85,7 @@ updateGS gs input =
     in (gs', debugTest evs)
 
 renderMS :: MainState -> IO ()
-renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
+renderMS (MainState { msGameState = gs, msSprites = sprs, msFont = font }) = do
     {-print $ gsActors gs-}
     GL.clear [GL.ColorBuffer]
 
@@ -91,7 +93,7 @@ renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
     GL.blend $= GL.Enabled
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
     GL.loadIdentity
-    GL.ortho 0 320 240 0 0 128
+    GL.ortho 0 320 0 240 0 128
 
     GL.matrixMode $= GL.Modelview 0
     GL.loadIdentity
@@ -103,6 +105,10 @@ renderMS (MainState { msGameState = gs, msSprites = sprs }) = do
 
         renderTileMap (gsTileMap gs) sprs
         renderActors (gsActors gs) sprs
+        
+        GL.color $ GL.Color3 0 0 (0::Double)
+        FTGL.renderFont font "hello world" FTGL.All
+        GL.color $ GL.Color3 1 1 (1::Double)
 
     SDL.glSwapBuffers
 
@@ -134,8 +140,8 @@ mainLoop mstate (time, frames) = do
         print frames
 
     let frmCtr = if (time' - time) > 1000
-                 then (time', 0)
-                 else (time, frames+1)
+                     then (time', 0)
+                     else (time, frames+1)
 
     SDL.delay 20
 
@@ -154,6 +160,9 @@ main = do
 
     randInit <- randomIO
 
+    font <- FTGL.createTextureFont "verdana.ttf"
+    FTGL.setFontFaceSize font 10 10
+
     let gstate = GameState { gsTileMap = tm
                            , gsActors = actors
                            , gsRandom = mkStdGen randInit
@@ -163,11 +172,12 @@ main = do
         mstate = MainState { msGameState = gstate
                            , msSprites = sprs
                            , msInput = emptyInput
+                           , msFont = font
                            }
     print actors
     mainLoop mstate (0, 0)
 
-    where actors = addArrs 20 $ newEnemy (10, 10) +: newPlayer (100, 100) +: IL.empty
+    where actors = {-addArrs 20 $-} newEnemy (10, 10) +: newPlayer (100, 100) +: IL.empty
           arr = newArrow (0, 0) 0 1 DirLeft 
           addArrs 0 il = il
           addArrs n il = arr +: addArrs (n-1) il

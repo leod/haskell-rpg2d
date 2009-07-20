@@ -4,7 +4,7 @@ module Util
     , Rect(Rect), rectIntersect, mkRect
     , (^+), (^-), (^*)
     , (^+^), (^-^), (^*^)
-    , divPointI
+    , divPoint
     , px, py
     , Direction(..)
     , dirToVel
@@ -54,8 +54,8 @@ infixl 7 ^*
 (^+) :: Point2 -> Int -> Point2
 (x1, y1) ^+ i = (x1 + i, y1 + i)
 
-divPointI :: Point2 -> Int -> Point2
-(x, y) `divPointI` i = (x `div` i, y `div` i)
+divPoint :: Point2 -> Int -> Point2
+(x, y) `divPoint` i = (x `div` i, y `div` i)
 
 {-instance Num Point2 where-}
     {-(x1, y1) + (x2, y2) = (x1 + x2, y1 + y2)-}
@@ -78,8 +78,8 @@ data Direction = DirLeft | DirRight | DirUp | DirDown
 dirToVel :: Direction -> Point2
 dirToVel DirLeft = (-1, 0)
 dirToVel DirRight = (1, 0)
-dirToVel DirUp = (0, -1)
-dirToVel DirDown = (0, 1)
+dirToVel DirUp = (0, 1)
+dirToVel DirDown = (0, -1)
 
 dirFromVec :: Point2 -> Direction
 dirFromVec (x, y) | x < 0 && x < y  = DirLeft
