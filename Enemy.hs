@@ -62,7 +62,7 @@ instance Actor Enemy where
     
     posRect self = mkRect (pos_ self ^+^ (5, 12)) (20, 20)
 
-    message (Impact dmg imvel) self = do
+    message (Impact dmg imvel) self =
         return self { extraVel_ = imvel ^* 3 ^+^ vel self
                     , extraVelTime_ = 2
                     , dir_ = (oppositeDir . oppositeDir . dirFromVec) imvel

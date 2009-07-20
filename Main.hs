@@ -50,6 +50,7 @@ data MainState = MainState { msGameState :: GameState
                            , msSprites :: SpriteMap
                            , msInput :: Input
                            , msFont :: FTGL.Font
+                           , msSurface :: Sprite
                            }
 
 pollEvents :: IO [SDL.Event]
@@ -85,20 +86,28 @@ updateGS gs input =
     in (gs', debugTest evs)
 
 renderMS :: MainState -> IO ()
-renderMS (MainState { msGameState = gs, msSprites = sprs, msFont = font }) = do
-    {-print $ gsActors gs-}
+renderMS MainState { msGameState = gs
+                   , msSprites = sprs
+                   , msFont = font
+                   , msSurface = surface
+                   } = do
     GL.clear [GL.ColorBuffer]
 
-    GL.matrixMode $= GL.Projection
     GL.blend $= GL.Enabled
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
+
+    GL.matrixMode $= GL.Projection
     GL.loadIdentity
-    GL.ortho 0 320 0 240 0 128
+    GL.ortho 0 (fromIntegral viewWidth) 0 (fromIntegral viewHeight) 0 128
 
     GL.matrixMode $= GL.Modelview 0
     GL.loadIdentity
     
-    GL.preservingMatrix $ do
+    GL.preservingMatrix $ renderToSprite surface $ do 
+        GL.matrixMode $= GL.Projection
+        GL.loadIdentity
+        GL.ortho 0 (fromIntegral viewWidth) 0 (fromIntegral viewHeight) 0 128
+
         GL.translate $ Vector3 (fromIntegral . px $ gsCamera gs)
                                (fromIntegral . py $ gsCamera gs)
                                (0 :: Double)
@@ -109,6 +118,20 @@ renderMS (MainState { msGameState = gs, msSprites = sprs, msFont = font }) = do
         GL.color $ GL.Color3 0 0 (0::Double)
         FTGL.renderFont font "hello world" FTGL.All
         GL.color $ GL.Color3 1 1 (1::Double)
+
+    GL.clear [GL.ColorBuffer]
+
+    GL.matrixMode $= GL.Projection
+    GL.loadIdentity
+    GL.ortho 0 800 600 0 0 128
+
+    GL.matrixMode $= GL.Modelview 0
+    GL.loadIdentity
+    GL.scale ((fromIntegral 800) / (fromIntegral viewWidth))
+             ((fromIntegral 600) / (fromIntegral viewHeight))
+             (1::Double)
+    
+    sprite surface (0, 0)
 
     SDL.glSwapBuffers
 
@@ -153,8 +176,8 @@ main = do
     SDL.init [SDL.InitEverything]
     SDL.setVideoMode 800 600 32 [SDL.OpenGL]
 
-    GL.clearColor $= Color4 1 1 1 0
-    GL.viewport $= (Position 0 0, Size 800 600)
+    GL.clearColor $= GL.Color4 1 1 1 0
+    GL.viewport $= (GL.Position 0 0, GL.Size 800 600)
 
     sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png", "tileset.png", "ts.png", "arrow.png", "enemy2.png"] -- TMP!
 
@@ -162,6 +185,8 @@ main = do
 
     font <- FTGL.createTextureFont "verdana.ttf"
     FTGL.setFontFaceSize font 10 10
+
+    surface <- emptySprite viewWidth viewHeight
 
     let gstate = GameState { gsTileMap = tm
                            , gsActors = actors
@@ -173,6 +198,7 @@ main = do
                            , msSprites = sprs
                            , msInput = emptyInput
                            , msFont = font
+                           , msSurface = surface
                            }
     print actors
     mainLoop mstate (0, 0)
