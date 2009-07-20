@@ -159,16 +159,16 @@ spriteClipped spr p (cx', cy') (cw', ch') =
             (tw, th) = (sprWidthRatio spr * (cw / sprWidth spr),
                         sprHeightRatio spr * (ch / sprHeight spr))
 
-        GL.texCoord $ GL.TexCoord2 tx ty
+        GL.texCoord $ GL.TexCoord2 tx (th+ty)
         GL.vertex   $ GL.Vertex2 0 (0::Double)
 
-        GL.texCoord $ GL.TexCoord2 (tw+tx) ty
+        GL.texCoord $ GL.TexCoord2 (tw+tx) (th+ty)
         GL.vertex   $ GL.Vertex2 cw 0
 
-        GL.texCoord $ GL.TexCoord2 (tw+tx) (th+ty)
+        GL.texCoord $ GL.TexCoord2 (tw+tx) ty
         GL.vertex   $ GL.Vertex2 cw ch
 
-        GL.texCoord $ GL.TexCoord2 tx (th+ty)
+        GL.texCoord $ GL.TexCoord2 tx ty
         GL.vertex   $ GL.Vertex2 0 ch
 
 sprite :: Sprite -> Point2 -> IO ()

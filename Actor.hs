@@ -23,7 +23,6 @@ import qualified Graphics.Rendering.OpenGL.GL as GL
 import Control.Monad.Random
 
 import TileMap
-{-import MonadRandom-}
 import Util
 import Render
 import Input
