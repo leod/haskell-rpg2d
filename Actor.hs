@@ -37,7 +37,6 @@ data Event = AddActor AnyActor
            | RemoveActor ActorId
            | SendMessage MessageRec
            | MoveCamera Point2
-           | Debug String -- Temp
     deriving Show
 
 -- Actors can send messages to each other, this is the only way in which they can influence each other
@@ -47,18 +46,8 @@ data Message = Impact Int Point2
 data MessageRec = MessageRec ActorId ActorId Message -- Sender Receiver Message
     deriving Show
 
---input :: Act Input
-input :: MonadReader UpdateState m => m Input
-input = liftM usInput ask
-
-tileMap :: MonadReader UpdateState m => m TileMap
-tileMap = liftM usTileMap ask
-
 event :: MonadWriter [Event] m => Event -> m ()
 event = tell . return 
-
-evDebug :: MonadWriter [Event] m => String -> m ()
-evDebug = event . Debug
 
 evAddActor :: MonadWriter [Event] m => AnyActor -> m ()
 evAddActor = event . AddActor
@@ -78,9 +67,14 @@ data UpdateState = UpdateState { usTileMap :: TileMap
                                , usSelfId :: ActorId 
                                }
 
-{-selfId :: MonadReader a m => m ActorId-}
 selfId :: MonadReader UpdateState m => m ActorId
 selfId = liftM usSelfId ask
+
+input :: MonadReader UpdateState m => m Input
+input = liftM usInput ask
+
+tileMap :: MonadReader UpdateState m => m TileMap
+tileMap = liftM usTileMap ask
 
 -- Monad in which actors are updated
 type Act = RandT DefGen (ReaderT UpdateState (Writer [Event]))
@@ -90,13 +84,6 @@ runAct a g s = let b = runRandT a g
                    c = runReaderT b s
                    ((res, g'), evs) = runWriter c
                in (res, g', evs)
-
-{-type Act = ReaderT UpdateState (Writer [Event])-}
-
-{-runAct :: Act a -> DefGen -> UpdateState -> (a, DefGen, [Event])-}
-{-runAct a g s = let c = runReaderT a s-}
-                   {-(res, evs) = runWriter c-}
-               {-in (res, g, evs) -}
 
 -- Actors need to be an instance of this type class
 class Show a => Actor a where
