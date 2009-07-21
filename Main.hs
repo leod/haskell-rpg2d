@@ -218,4 +218,4 @@ main = do
           arr = newArrow (0, 0) 0 1 DirLeft 
           addArrs 0 il = il
           addArrs n il = arr +: addArrs (n-1) il
-          tm = array ((0, 0), (40, 30)) [((x, y), y*10+x) | x <- [0..40], y <- [0..30]]
+          tm = testMap
