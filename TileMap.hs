@@ -1,4 +1,14 @@
-module TileMap (Tile, TileMap, renderTileMap) where
+module TileMap
+    ( Tile
+    , TileMap
+    , renderTileMap
+    , mapSize
+    , mapWidth
+    , mapHeight
+    , mapPixelSize
+    , mapPixelWidth
+    , mapPixelHeight
+    ) where
 
 import Data.Array
 import Control.Monad
@@ -26,6 +36,24 @@ renderGrid tm = withColor (GL.Color4 0 0 1 0.2) $ GL.renderPrimitive GL.Lines $ 
 
     where ((_, _), (w, h)) = bounds tm
 
+mapSize :: TileMap -> Size2
+mapSize = snd . bounds
+
+mapWidth :: TileMap -> Int
+mapWidth = px . mapSize
+
+mapHeight :: TileMap -> Int
+mapHeight = px . mapSize
+
+mapPixelSize :: TileMap -> Size2
+mapPixelSize = (^*^ (tileWidth, tileHeight)) . mapSize
+
+mapPixelWidth :: TileMap -> Int
+mapPixelWidth = px . mapPixelSize
+
+mapPixelHeight :: TileMap -> Int
+mapPixelHeight = py . mapPixelSize
+
 renderTileMap :: TileMap -> SpriteMap -> IO ()
 renderTileMap tm sm =
     let tiles = assocs tm
@@ -51,4 +79,4 @@ renderTileMap tm sm =
 
                    GL.texCoord $ GL.TexCoord2 tx (th+ty)
                    GL.vertex   $ GL.Vertex2 x (y+ch)))
-        >> renderGrid tm
+        {->> renderGrid tm-}

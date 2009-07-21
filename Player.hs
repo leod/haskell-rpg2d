@@ -44,8 +44,8 @@ instance Actor Player where
             lastShot' = if lastShot self > 0 then lastShot self - 1 else 0
             doShoot = inSpace inp && lastShot' == 0
 
-        evMoveCamera (-px pos' + viewWidth `div` 2 - px clip `div` 2,
-                      -py pos' + viewHeight `div` 2 - py clip `div` 2)
+        evMoveCamera (px pos' - viewWidth `div` 2 + px clip `div` 2,
+                      py pos' - viewHeight `div` 2 + py clip `div` 2)
 
         myId <- selfId
 

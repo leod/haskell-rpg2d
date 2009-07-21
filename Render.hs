@@ -105,7 +105,7 @@ data Sprite = Sprite { sprTexture :: GL.TextureObject
                      , sprHeightRatio :: Double
                      } deriving Show
 
-nextPowerOf2 x = head $ dropWhile (< x) $ iterate (* 2) 1
+nextPowerOf2 x = head . dropWhile (< x) . iterate (* 2) $ 1
 
 -- Pad to n^2
 padSurface :: SDL.Surface -> IO SDL.Surface

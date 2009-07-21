@@ -14,6 +14,7 @@ import Actor
 import Util
 import Render
 import Anim
+import TileMap
 
 data Enemy = Enemy { pos_ :: !Point2
                    , dir_ :: !Direction
@@ -47,12 +48,27 @@ instance Actor Enemy where
 
         pos' <- get pos
         dir' <- get dir
-        when (px pos' <= 0 && dir' == DirLeft) $
+
+        when (px pos' <= 0) $ do
             dir %= DirRight
+            pos %= (0, py pos')
+
+        when (py pos' <= 0) $ do
+            dir %= DirUp
+            pos %= (px pos', 0)
+
+        tm <- tileMap
+        when ((px pos' + 20) >= mapPixelWidth tm) $ do
+            pos %= ((mapPixelWidth tm) - 20, py pos')
+            dir %= DirLeft
+        
+        when ((py pos' + 20) >= mapPixelHeight tm) $ do
+            pos %= (px pos', (mapPixelHeight tm) - 20)
+            dir %= DirDown
 
         velTime <- get extraVelTime
         if velTime == 0
-            then extraVel %= (0,0)
+            then extraVel %= (0, 0)
             else extraVelTime %: subtract 1
 
     render sprs self = spriteClipped (getSprite "enemy2.png" sprs)

@@ -1,6 +1,7 @@
 module Util
     ( DefGen
     , Point2
+    , Size2
     , Rect(Rect), rectIntersect, mkRect
     , (^+), (^-), (^*)
     , (^+^), (^-^), (^*^)
@@ -17,6 +18,7 @@ import System.Random
 type DefGen = StdGen
 
 type Point2 = (Int, Int)
+type Size2 = Point2
 data Rect = Rect Int Int Int Int
 
 rectIntersect :: Rect -> Rect -> Bool
