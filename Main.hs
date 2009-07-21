@@ -43,11 +43,6 @@ processEvents = foldl' f
           f gs (MoveCamera p) = gs { gsCamera = clampCamera gs p }
           f gs _ = gs
 
-debugTest :: [Event] -> IO ()
-debugTest = foldl' f $ return ()
-    where f io (Debug str) = io >> putStrLn str
-          f io _ = io
-
 getMessages :: [Event] -> [MessageRec]
 getMessages = foldl' f []
     where f :: [MessageRec] -> Event -> [MessageRec]
