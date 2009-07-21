@@ -193,7 +193,7 @@ main = do
     randInit <- randomIO
 
     font <- FTGL.createTextureFont "verdana.ttf"
-    FTGL.setFontFaceSize font 10 10
+    FTGL.setFontFaceSize font 5 5
 
     surface <- emptySprite viewWidth viewHeight
 

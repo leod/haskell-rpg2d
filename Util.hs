@@ -3,6 +3,7 @@ module Util
     , Point2
     , Size2
     , Rect(Rect), rectIntersect, mkRect
+    , rectPos, rectSize
     , (^+), (^-), (^*)
     , (^+^), (^-^), (^*^)
     , divPoint
@@ -24,6 +25,12 @@ data Rect = Rect Int Int Int Int
 rectIntersect :: Rect -> Rect -> Bool
 rectIntersect (Rect x1 y1 w1 h1) (Rect x2 y2 w2 h2) =
     not $ x1 > x2 + w2 || x1 + w1 < x2 || y1 > y2 + h2 || y1 + h1 < y2
+
+rectPos :: Rect -> Point2
+rectPos (Rect x y _ _) = (x, y)
+
+rectSize :: Rect -> Size2
+rectSize (Rect _ _ w h) = (w, h)
 
 mkRect :: Point2 -> Point2 -> Rect
 mkRect (x, y) (w, h) = Rect x y w h

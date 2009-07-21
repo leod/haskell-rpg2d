@@ -34,7 +34,7 @@ renderGrid tm = withColor (GL.Color4 0 0 1 0.2) $ GL.renderPrimitive GL.Lines $ 
        GL.vertex $ GL.Vertex2 (0::Double) (fromIntegral $ y*tileHeight)
        GL.vertex $ GL.Vertex2 (fromIntegral $ w*tileWidth) (fromIntegral $ y*tileHeight :: Double))
 
-    where ((_, _), (w, h)) = bounds tm
+    where (w, h) = mapSize tm
 
 mapSize :: TileMap -> Size2
 mapSize = snd . bounds

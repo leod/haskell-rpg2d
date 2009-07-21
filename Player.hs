@@ -36,7 +36,7 @@ instance Actor Player where
                           then Just (dir self)
                           else dirFromInput inp
             runMult = if inCtrl inp then 2 else 1
-            vel' = maybe (0, 0) ((^* 3) . dirToVel) walkDir ^*^ (runMult, runMult)
+            vel' = maybe (0, 0) ((^* 2) . dirToVel) walkDir ^*^ (runMult, runMult)
             pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir  
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
             anim' = if walking' then updateAnim (4 `div` runMult) 7 $ anim self else fixFrame 0

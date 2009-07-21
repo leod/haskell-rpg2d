@@ -6,6 +6,7 @@ module IdentityList
     , update
     , IdentityList.foldl
     , foldl'
+    , toList
     , IdentityList.map
     , IdentityList.lookup
     , IdentityList.mapM
@@ -52,6 +53,9 @@ foldl' f z (IL k as) = g f z as
     where g f z [] = z
           g f z (a:as) = let a' = f z a
                          in a' `seq` g f a' as
+
+toList :: IL a -> [(ILKey, a)]
+toList (IL _ as) = as
 
 map :: ((ILKey, a) -> b) -> IL a -> IL b
 map f (IL k as) =
