@@ -31,6 +31,7 @@ import Render
 import Input
 import IdentityList (IL)
 import qualified IdentityList as IL
+import Control.Parallel
 
 -- When actors are being updated, they can yield a list of events
 data Event = AddActor AnyActor
@@ -132,18 +133,17 @@ dispatchMessages = foldl f . return
                   Just (AnyActor actor) -> do
                       actor' <- withSelfId to $ message msg actor 
                       return $ IL.update to (AnyActor actor') list
-                  Nothing -> mlist -- Actor was deleted before message reached it
+                  Nothing -> return list -- Actor was deleted before message reached it
 
 collisions :: ActorList -> Act ActorList
 collisions acts = IL.mapM testAll acts
     where testAll :: (ActorId, AnyActor) -> Act AnyActor
-          testAll (id, actor@(AnyActor aa)) = withSelfId id $ IL.foldl' testOne (return actor) acts
+          testAll (id, actor@(AnyActor aa)) = withSelfId id $ foldM testOne actor (IL.toList acts)
               where -- Test intersection of one actor with all other actors
-                    testOne :: Act AnyActor -> (ActorId, AnyActor) -> Act AnyActor
-                    testOne mactor arec@(id2, AnyActor actor2) 
-                        | id2 == id = mactor
+                    testOne :: AnyActor -> (ActorId, AnyActor) -> Act AnyActor
+                    testOne (AnyActor actor) arec@(id2, AnyActor actor2) 
+                        | id2 == id = return $ AnyActor actor
                         | otherwise = do
-                            AnyActor actor <- mactor 
                             if rectIntersect (posRect actor) (posRect actor2)
                                 then liftM AnyActor $ collision arec actor
                                 else
