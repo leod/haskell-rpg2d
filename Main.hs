@@ -16,23 +16,31 @@ import Actor
 import Input
 import TileMap
 import GameState
-import NPC
 import Player
 import Consts
 import Enemy
 import Render
 import Input
-import Util (px, py, Direction(..))
+import Util 
 import qualified IdentityList as IL
 import IdentityList ((+:))
 import Arrow
+
+import Debug.Trace
+trac a = traceShow a a
+
+clampCamera :: GameState -> Point2 -> Point2
+clampCamera gs (x, y) = (min (max 0 x) (mapPixelWidth tm - viewWidth),
+                         min (max 0 y) (mapPixelHeight tm - viewHeight))
+    where tm = gsTileMap gs
+{-clampCamera gs = id-}
 
 processEvents :: GameState -> [Event] -> GameState
 processEvents = foldl' f
     where f :: GameState -> Event -> GameState
           f gs (AddActor a) = gs { gsActors = a `IL.insert` gsActors gs  }
           f gs (RemoveActor id) = gs { gsActors = id `IL.delete` gsActors gs }
-          f gs (MoveCamera p) = gs { gsCamera = p }
+          f gs (MoveCamera p) = gs { gsCamera = clampCamera gs p }
           f gs _ = gs
 
 debugTest :: [Event] -> IO ()
@@ -51,6 +59,8 @@ data MainState = MainState { msGameState :: GameState
                            , msInput :: Input
                            , msFont :: FTGL.Font
                            , msSurface :: Sprite
+                           , msScreenW :: Int
+                           , msScreenH :: Int
                            }
 
 pollEvents :: IO [SDL.Event]
@@ -62,8 +72,7 @@ pollEvents = poll []
                   SDL.NoEvent -> return evs
                   _ -> poll $ ev : evs
 
--- TODO: IO () result is for debugging, remove later
-updateGS :: GameState -> Input -> (GameState, IO ())
+updateGS :: GameState -> Input -> GameState
 updateGS gs input =
     let actors = gsActors gs
         random = gsRandom gs
@@ -83,13 +92,15 @@ updateGS gs input =
         -- Process events
         gs' = gs { gsActors = actors'', gsRandom = random' }
                   `processEvents` evs
-    in (gs', debugTest evs)
+    in gs'
 
 renderMS :: MainState -> IO ()
 renderMS MainState { msGameState = gs
                    , msSprites = sprs
                    , msFont = font
                    , msSurface = surface
+                   , msScreenW = screenW
+                   , msScreenH = screenH
                    } = do
     GL.clear [GL.ColorBuffer]
 
@@ -108,15 +119,15 @@ renderMS MainState { msGameState = gs
         GL.loadIdentity
         GL.ortho 0 (fromIntegral viewWidth) 0 (fromIntegral viewHeight) 0 128
 
-        GL.translate $ Vector3 (fromIntegral . px $ gsCamera gs)
-                               (fromIntegral . py $ gsCamera gs)
+        GL.translate $ Vector3 (fromIntegral . negate . px $ gsCamera gs)
+                               (fromIntegral . negate . py $ gsCamera gs)
                                (0 :: Double)
 
         renderTileMap (gsTileMap gs) sprs
         renderActors (gsActors gs) sprs
         
         GL.color $ GL.Color3 0 0 (0::Double)
-        FTGL.renderFont font "hello world" FTGL.All
+        --FTGL.renderFont font "hello world" FTGL.All
         GL.color $ GL.Color3 1 1 (1::Double)
 
     GL.clear [GL.ColorBuffer]
@@ -127,8 +138,8 @@ renderMS MainState { msGameState = gs
 
     GL.matrixMode $= GL.Modelview 0
     GL.loadIdentity
-    GL.scale ((fromIntegral 800) / (fromIntegral viewWidth))
-             ((fromIntegral 600) / (fromIntegral viewHeight))
+    GL.scale ((fromIntegral screenW) / (fromIntegral viewWidth))
+             ((fromIntegral screenH) / (fromIntegral viewHeight))
              (1::Double)
     
     sprite surface (0, 0)
@@ -142,7 +153,7 @@ mainLoop mstate (time, frames) = do
     -- Update
     let input = updateInput (msInput mstate) sdlEvents
 
-        (gstate, io) = updateGS (msGameState mstate) input
+        gstate = updateGS (msGameState mstate) input
         mstate' = mstate { msGameState = gstate
                          , msInput = input } 
 
@@ -152,15 +163,13 @@ mainLoop mstate (time, frames) = do
         tm      = gsTileMap gstate
         msgs    = gsMessages gstate
 
-    io
-
     -- Render
     renderMS mstate'
 
     time' <- SDL.getTicks
 
     when (time' - time > 1000) $
-        print frames
+        putStrLn $ "FPS: " ++ show frames
 
     let frmCtr = if (time' - time) > 1000
                      then (time', 0)
@@ -176,7 +185,7 @@ main = do
     SDL.init [SDL.InitEverything]
     SDL.setVideoMode 800 600 32 [SDL.OpenGL]
 
-    GL.clearColor $= GL.Color4 1 1 1 0
+    GL.clearColor $= GL.Color4 0 0 0 0
     GL.viewport $= (GL.Position 0 0, GL.Size 800 600)
 
     sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png", "tileset.png", "ts.png", "arrow.png", "enemy2.png"] -- TMP!
@@ -199,6 +208,8 @@ main = do
                            , msInput = emptyInput
                            , msFont = font
                            , msSurface = surface
+                           , msScreenW = 800
+                           , msScreenH = 600
                            }
     print actors
     mainLoop mstate (0, 0)

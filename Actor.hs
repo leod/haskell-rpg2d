@@ -3,6 +3,7 @@
 module Actor
     ( Event(..)
     , input
+    , tileMap
     , evAddActor, evRemoveSelf, evMessage, evMoveCamera, evDebug
     , selfId
     , Message(Impact)
@@ -47,6 +48,9 @@ data MessageRec = MessageRec ActorId ActorId Message -- Sender Receiver Message
 --input :: Act Input
 input :: MonadReader UpdateState m => m Input
 input = liftM usInput ask
+
+tileMap :: MonadReader UpdateState m => m TileMap
+tileMap = liftM usTileMap ask
 
 event :: MonadWriter [Event] m => Event -> m ()
 event = tell . return 
