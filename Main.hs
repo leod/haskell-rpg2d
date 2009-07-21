@@ -168,6 +168,7 @@ mainLoop mstate (time, frames) = do
                      then (time', 0)
                      else (time, frames+1)
 
+    {-print $ length (IL.toList actors)-}
     SDL.delay 20
 
     if inQuit input
@@ -207,8 +208,9 @@ main = do
     print actors
     mainLoop mstate (0, 0)
 
-    where actors = {-addArrs 20 $-} newEnemy (10, 10) +: newPlayer (100, 100) +: IL.empty
-          arr = newArrow (0, 0) 0 1 DirLeft 
+    where actors = --addArrs 199 $
+                   newEnemy (10, 100) +: newPlayer (100, 100) +: IL.empty
+          arr n = newArrow (0, n * 20) 0 1 DirLeft 
           addArrs 0 il = il
-          addArrs n il = arr +: addArrs (n-1) il
+          addArrs n il = arr n +: addArrs (n-1) il
           tm = testMap
