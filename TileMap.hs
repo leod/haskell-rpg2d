@@ -8,6 +8,7 @@ module TileMap
     , mapPixelSize
     , mapPixelWidth
     , mapPixelHeight
+    , testMap
     ) where
 
 import Data.Array
@@ -18,10 +19,23 @@ import Consts
 import Render
 import Graphics.Rendering.OpenGL.GL as GL
 
-type Tile = Int
+type Tile = Maybe Point2
 type Layer = Array Point2 Tile
 --data TileMap = TileMap Layer Layer Layer Layer
-type TileMap = Layer
+data TileMap = TileMap { underground :: Layer
+                       , foreground :: Layer
+                       , mapSize :: Point2
+                       } deriving Show
+
+testMap = TileMap { underground = underground'
+                  , foreground = foreground'
+                  , mapSize = mapSize'
+                  }
+    where underground' = array ((0, 0), mapSize')
+                         [((x, y), Just (7, 0)) | x <- [0..40], y <- [0..30]]
+          foreground' = array ((0, 0), mapSize')
+                         [((x, y), if (x == 0 || y == 0 || x == 39 || y == 29) then Just (13, 0) else Nothing) | x <- [0..40], y <- [0..30]]
+          mapSize' = (40, 30)
 
 -- Debugging
 renderGrid :: TileMap -> IO ()
@@ -35,9 +49,6 @@ renderGrid tm = withColor (GL.Color4 0 0 1 0.2) $ GL.renderPrimitive GL.Lines $ 
        GL.vertex $ GL.Vertex2 (fromIntegral $ w*tileWidth) (fromIntegral $ y*tileHeight :: Double))
 
     where (w, h) = mapSize tm
-
-mapSize :: TileMap -> Size2
-mapSize = snd . bounds
 
 mapWidth :: TileMap -> Int
 mapWidth = px . mapSize
@@ -54,29 +65,35 @@ mapPixelWidth = px . mapPixelSize
 mapPixelHeight :: TileMap -> Int
 mapPixelHeight = py . mapPixelSize
 
-renderTileMap :: TileMap -> SpriteMap -> IO ()
-renderTileMap tm sm =
-    let tiles = assocs tm
-        spr = "ts.png" `getSprite` sm
-    in (withTexture (sprTexture spr) $ GL.renderPrimitive GL.Quads $
-        forM_ tiles (\((x', y'), t) ->
+renderLayer :: Layer -> SpriteMap -> IO ()
+renderLayer layer sm =
+    let tiles = assocs layer
+    in withTexture (sprTexture spr) $ GL.renderPrimitive GL.Quads $ forM_ tiles tile
+        
+    where spr = "ts.png" `getSprite` sm
+          tile (_, Nothing) = return ()
+          tile ((x', y'), Just (xTile, yTile)) =
                let (x, y) = (fromIntegral x' * tileWidth, fromIntegral y' * tileHeight) :: (Double, Double)
-                   (cx, cy) = (tileWidth*7, tileHeight*2) :: (Double, Double)
+                   (cx, cy) = (fromIntegral $ tileWidth * xTile, fromIntegral $ tileHeight * yTile) :: (Double, Double)
                    (cw, ch) = (tileWidth, tileHeight) :: (Double, Double)
                    (tx, ty) = (sprWidthRatio spr * (cx / sprWidth spr),
                                sprHeightRatio spr * (cy / sprHeight spr))
                    (tw, th) = (sprWidthRatio spr * (cw / sprWidth spr),
                                sprHeightRatio spr * (ch / sprHeight spr))
                in do
-                   GL.texCoord $ GL.TexCoord2 tx ty
+                   GL.texCoord $ GL.TexCoord2 tx (ty+th)
                    GL.vertex   $ GL.Vertex2 x y
 
-                   GL.texCoord $ GL.TexCoord2 (tw+tx) ty
+                   GL.texCoord $ GL.TexCoord2 (tw+tx) (ty+th)
                    GL.vertex   $ GL.Vertex2 (x+cw) y
 
-                   GL.texCoord $ GL.TexCoord2 (tw+tx) (th+ty)
+                   GL.texCoord $ GL.TexCoord2 (tw+tx) ty
                    GL.vertex   $ GL.Vertex2 (x+cw) (y+ch)
 
-                   GL.texCoord $ GL.TexCoord2 tx (th+ty)
-                   GL.vertex   $ GL.Vertex2 x (y+ch)))
-        {->> renderGrid tm-}
+                   GL.texCoord $ GL.TexCoord2 tx ty
+                   GL.vertex   $ GL.Vertex2 x (y+ch)
+
+renderTileMap :: TileMap -> SpriteMap -> IO ()
+renderTileMap tm sm = do
+    renderLayer (underground tm) sm
+    renderLayer (foreground tm) sm
