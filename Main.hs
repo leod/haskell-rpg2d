@@ -36,8 +36,8 @@ clampCamera gs = min maxX . max 0 *** min maxY . max 0
 processEvents :: GameState -> [Event] -> GameState
 processEvents = foldl' f
     where f :: GameState -> Event -> GameState
-          f gs (AddActor a) = gs { gsActors = a `IL.insert` gsActors gs  }
-          f gs (RemoveActor id) = gs { gsActors = id `IL.delete` gsActors gs }
+          f gs (AddActor a) = gs { gsActors = a +: gsActors gs  }
+          f gs (RemoveActor id) = gs { gsActors =id `IL.delete` gsActors gs }
           f gs (MoveCamera p) = gs { gsCamera = clampCamera gs p }
           f gs _ = gs
 
@@ -169,7 +169,7 @@ mainLoop mstate (time, frames) = do
                      else (time, frames+1)
 
     {-print $ length (IL.toList actors)-}
-    SDL.delay 20
+    SDL.delay 15
 
     if inQuit input
         then return ()
@@ -182,7 +182,9 @@ main = do
     GL.clearColor $= GL.Color4 0 0 0 0
     GL.viewport $= (GL.Position 0 0, GL.Size 800 600)
 
-    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png", "tileset.png", "ts.png", "arrow.png", "enemy2.png"] -- TMP!
+    sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png",
+                                       "tileset.png", "ts.png", "arrow.png", "enemy2.png", "enemy3.png",
+                                       "test3.png", "player.png"] -- TMP!
 
     randInit <- randomIO
 
@@ -209,7 +211,9 @@ main = do
     mainLoop mstate (0, 0)
 
     where actors = --addArrs 199 $
-                   newEnemy (10, 100) +: newPlayer (100, 100) +: IL.empty
+                   newEnemy (300, 100) +:
+                   newEnemy (100, 30) +:
+                   newPlayer (100, 100) +: IL.empty
           arr n = newArrow (0, n * 20) 0 1 DirLeft 
           addArrs 0 il = il
           addArrs n il = arr n +: addArrs (n-1) il

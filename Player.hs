@@ -22,9 +22,9 @@ data Player = Player { pos :: !Point2
                      } deriving Show
 
 clip :: Point2
-clip = (23, 26)
+clip = (32, 48)
 
-file = "linkanim.png"
+file = "player.png"
 
 instance Actor Player where
     neededResources _ = [file]
@@ -39,7 +39,7 @@ instance Actor Player where
             vel' = maybe (0, 0) ((^* 2) . dirToVel) walkDir ^*^ (runMult, runMult)
             pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir  
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
-            anim' = if walking' then updateAnim (4 `div` runMult) 7 $ anim self else fixFrame 0
+            anim' = if walking' then updateAnim (6 `div` runMult) 3 $ anim self else fixFrame 0
 
             lastShot' = if lastShot self > 0 then lastShot self - 1 else 0
             doShoot = inSpace inp && lastShot' == 0
@@ -104,7 +104,7 @@ strideVel Input { inLArrow = True } DirDown  = (-1, 0)
 strideVel Input { inRArrow = True } DirDown  = (1, 0)
 strideVel _ _ = (0, 0)
 
-dirToRow DirLeft = 0
-dirToRow DirUp = 1
+dirToRow DirDown = 0
+dirToRow DirLeft = 1
 dirToRow DirRight = 2
-dirToRow DirDown = 3
+dirToRow DirUp = 3

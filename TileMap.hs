@@ -32,10 +32,10 @@ testMap = TileMap { underground = underground'
                   , mapSize = mapSize'
                   }
     where underground' = array ((0, 0), mapSize')
-                         [((x, y), Just (7, 0)) | x <- [0..40], y <- [0..30]]
+                         [((x, y), Just (0, 0)) | x <- [0..px mapSize'], y <- [0..py mapSize']]
           foreground' = array ((0, 0), mapSize')
-                         [((x, y), if (x == 0 || y == 0 || x == 39 || y == 29) then Just (13, 0) else Nothing) | x <- [0..40], y <- [0..30]]
-          mapSize' = (40, 30)
+                         [((x, y), if (x == 0 || y == 0 || x == px mapSize' - 1 || y == py mapSize' - 1) then Just (0, 5) else Nothing) | x <- [0..px mapSize'], y <- [0..py mapSize']]
+          mapSize' = (20, 20)
 
 -- Debugging
 renderGrid :: TileMap -> IO ()
@@ -70,7 +70,7 @@ renderLayer layer sm =
     let tiles = assocs layer
     in withTexture (sprTexture spr) $ GL.renderPrimitive GL.Quads $ forM_ tiles tile
         
-    where spr = "ts.png" `getSprite` sm
+    where spr = "test3.png" `getSprite` sm
           tile (_, Nothing) = return ()
           tile ((x', y'), Just (xTile, yTile)) =
                let (x, y) = (fromIntegral x' * tileWidth, fromIntegral y' * tileHeight) :: (Double, Double)
