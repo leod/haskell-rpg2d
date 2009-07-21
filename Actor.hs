@@ -22,6 +22,7 @@ import Control.Monad.Reader
 import qualified Graphics.UI.SDL as SDL (Event)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import Control.Monad.Random
+import Data.List (sortBy)
 
 import TileMap
 import Util
@@ -163,7 +164,12 @@ collisions acts = IL.mapM testAll acts
                                     -- But return $ AnyActor actor and mactor should be just the same?
                                     -- It's probably lazy evaluation again :)
 
+zSort :: [(ActorId, AnyActor)] -> [(ActorId, AnyActor)]
+zSort = sortBy cmp
+    where cmp a b = compare (ypos b) (ypos a)
+          ypos (_, AnyActor a) = py . rectPos . posRect $ a 
+
 renderActors :: ActorList -> SpriteMap -> IO ()
-renderActors acts sprs = IL.mapM_ f acts
+renderActors acts sprs = mapM_ f . zSort . IL.toList $ acts
     where f (_, AnyActor actor) = render sprs actor 
                                   -- >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)
