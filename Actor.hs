@@ -23,6 +23,7 @@ import qualified Graphics.UI.SDL as SDL (Event)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import Control.Monad.Random
 import Data.List (sortBy)
+import Data.Function (on)
 
 import TileMap
 import Util
@@ -166,7 +167,7 @@ collisions acts = IL.mapM testAll acts
 
 zSort :: [(ActorId, AnyActor)] -> [(ActorId, AnyActor)]
 zSort = sortBy cmp
-    where cmp a b = compare (ypos b) (ypos a)
+    where cmp = flip (compare `on` ypos)
           ypos (_, AnyActor a) = py . rectPos . posRect $ a 
 
 renderActors :: ActorList -> SpriteMap -> IO ()
