@@ -4,7 +4,7 @@ module Actor
     ( Event(..)
     , input
     , tileMap
-    , evAddActor, evRemoveSelf, evMessage, evMoveCamera, evDebug
+    , evAddActor, evRemoveSelf, evMessage, evMoveCamera
     , selfId
     , Message(Impact)
     , MessageRec

@@ -11,6 +11,7 @@ import Graphics.Rendering.OpenGL as GL
 import Graphics.Rendering.FTGL as FTGL
 import Foreign (Word32)
 import Data.List (foldl')
+import Control.Arrow ((***))
 
 import Actor
 import Input
@@ -26,14 +27,11 @@ import qualified IdentityList as IL
 import IdentityList ((+:))
 import Arrow
 
-import Debug.Trace
-trac a = traceShow a a
-
 clampCamera :: GameState -> Point2 -> Point2
-clampCamera gs (x, y) = (min (max 0 x) (mapPixelWidth tm - viewWidth),
-                         min (max 0 y) (mapPixelHeight tm - viewHeight))
+clampCamera gs = min maxX . max 0 *** min maxY . max 0 
     where tm = gsTileMap gs
-{-clampCamera gs = id-}
+          maxX = mapPixelWidth  tm - viewWidth
+          maxY = mapPixelHeight tm - viewHeight
 
 processEvents :: GameState -> [Event] -> GameState
 processEvents = foldl' f
