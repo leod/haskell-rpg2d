@@ -15,14 +15,26 @@ import Graphics.UI.Gtk.Gdk.Events hiding (eventRegion)
 import Util 
 import Consts
 
-data State = State { tileset :: Pixbuf
-                   , selectedTiles :: Rect
-                   , tilesetMouseDown :: Bool
-                   , tilesetMouseStart :: Point2
+data ActorType = ActorType { atName :: String
+                           , atProperties :: [String]
+                           , atSprite :: FilePath
+                           }
+type ActorTypeId = Int
+
+data ActorInfo = ActorInfo { aTypeId :: ActorTypeId
+                           , aProperties :: [(String, String)]
+                           , aPos :: Point2
+                           }
+
+data State = State { stTileset :: Pixbuf
+                   , stCurrentLayer :: Int
+                   , stSelectedTiles :: Rect
+                   , stTilesetMouseDown :: Bool
+                   , stTilesetMouseStart :: Point2
                    }
 
 drawTileSet w s = liftIO $ do
-    State { tileset, selectedTiles } <- readIORef s
+    State { stTileset = tileset, stSelectedTiles = selectedTiles } <- readIORef s
 
     draw <- widgetGetDrawWindow w
     gc <- gcNew draw
@@ -35,7 +47,7 @@ drawMap w s = do
     region <- eventRegion
 
     liftIO $ do
-        ts <- tileset <$> readIORef s
+        ts <- stTileset <$> readIORef s
 
         draw <- widgetGetDrawWindow w
         gc <- gcNew draw
@@ -46,7 +58,7 @@ drawMap w s = do
 
 tilesetSize :: IORef State -> IO Size2
 tilesetSize s = do
-    State { tileset } <- readIORef s
+    State { stTileset = tileset } <- readIORef s
     w <- pixbufGetWidth tileset
     h <- pixbufGetHeight tileset
     return (w `div` tileWidth, h `div` tileHeight)
@@ -64,21 +76,21 @@ onTileSetButtonPress w s Button { eventX, eventY } =
         let rect' = mkRect p (1, 1)
 
         when (tilesetRectInBounds tsSize rect') $ do
-            modifyIORef s (\s -> s { selectedTiles = mkRect p (1, 1)
-                                   , tilesetMouseDown = True
-                                   , tilesetMouseStart = p
+            modifyIORef s (\s -> s { stSelectedTiles = mkRect p (1, 1)
+                                   , stTilesetMouseDown = True
+                                   , stTilesetMouseStart = p
                                    })
             widgetQueueDraw w
         return True 
             
 onTileSetButtonRelease w s Button { } =
-    modifyIORef s (\s -> s { tilesetMouseDown = False }) >>
+    modifyIORef s (\s -> s { stTilesetMouseDown = False }) >>
     return True
 
 onTileSetMotion w s Motion { eventX, eventY } = do
-    State { tilesetMouseDown = down
-          , tilesetMouseStart = (x, y)
-          , selectedTiles = rect
+    State { stTilesetMouseDown = down
+          , stTilesetMouseStart = (x, y)
+          , stSelectedTiles = rect
           } <- readIORef s
     tsSize <- tilesetSize s
 
@@ -90,13 +102,13 @@ onTileSetMotion w s Motion { eventX, eventY } = do
                          (max 1 . (+1) . abs $ y' - y)
 
         when (rect' /= rect && tilesetRectInBounds tsSize rect') $ do
-            modifyIORef s (\s -> s { selectedTiles = rect' })
+            modifyIORef s (\s -> s { stSelectedTiles = rect' })
             widgetQueueDraw w
     
     return True
 
 onTileSetLeave w s Crossing { eventCrossingMode = m } = 
-    modifyIORef s (\s -> s { tilesetMouseDown = False }) >>
+    modifyIORef s (\s -> s { stTilesetMouseDown = False }) >>
     return True
 
 main = do
@@ -108,10 +120,10 @@ main = do
 
     tileset <- pixbufNewFromFile "data/test3.png"
 
-    state <- newIORef State { tileset = tileset
-                            , selectedTiles = mkRect (3, 1) (1, 1)
-                            , tilesetMouseDown = False
-                            , tilesetMouseStart = (0, 0)
+    state <- newIORef State { stTileset = tileset
+                            , stSelectedTiles = mkRect (3, 1) (1, 1)
+                            , stTilesetMouseDown = False
+                            , stTilesetMouseStart = (0, 0)
                             }
 
     mapDraw <- xmlGetWidget xml castToDrawingArea "mapDraw"
