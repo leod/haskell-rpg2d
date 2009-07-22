@@ -6,10 +6,12 @@ module Util
     , rectPos, rectSize
     , rectX, rectY
     , rectW, rectH
+    , rectX2, rectY2
     , (^+), (^-), (^*)
     , (^+^), (^-^), (^*^)
     , divPoint
     , px, py
+    , pabs
     , Direction(..)
     , dirToVel
     , dirFromVec
@@ -17,12 +19,14 @@ module Util
     ) where
 
 import System.Random
+import Control.Arrow ((***))
 
 type DefGen = StdGen
 
 type Point2 = (Int, Int)
 type Size2 = Point2
 data Rect = Rect Int Int Int Int
+    deriving (Show, Eq)
 
 rectIntersect :: Rect -> Rect -> Bool
 rectIntersect (Rect x1 y1 w1 h1) (Rect x2 y2 w2 h2) =
@@ -34,11 +38,13 @@ rectPos (Rect x y _ _) = (x, y)
 rectSize :: Rect -> Size2
 rectSize (Rect _ _ w h) = (w, h)
 
-rectX, rectY, rectW, rectH :: Rect -> Int
+rectX, rectY, rectW, rectH, rectX2, rectY2 :: Rect -> Int
 rectX = px . rectPos
 rectY = py . rectPos
 rectW = px . rectSize
 rectH = py . rectSize
+rectX2 r = rectX r + rectW r
+rectY2 r = rectY r + rectH r
 
 mkRect :: Point2 -> Point2 -> Rect
 mkRect (x, y) (w, h) = Rect x y w h
@@ -88,6 +94,9 @@ px = fst
 
 py :: Point2 -> Int
 py = snd
+
+pabs :: Point2 -> Point2
+pabs = abs *** abs
 
 data Direction = DirLeft | DirRight | DirUp | DirDown 
     deriving (Show, Eq)
