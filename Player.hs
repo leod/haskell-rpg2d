@@ -70,7 +70,7 @@ instance Actor Player where
     render sprs self = spriteClipped (getSprite (if attacking self then "player_sword.png" else "player.png") sprs)
                                      (pos self)
                                      (px clip * (animFrame . anim) self, py clip * dirToRow (dir self)) clip
-
+     
     collision (id, _) self = do
         when (attacking self) $ do
             evMessage id (Impact 100 $ dirToVel (dir self) ^* 4) 

@@ -177,7 +177,7 @@ mainLoop mstate (time, frames) = do
                      else (time, frames+1)
 
     {-print $ length (IL.toList actors)-}
-    SDL.delay 15
+    SDL.delay 20
 
     if inQuit input
         then return ()

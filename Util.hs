@@ -4,6 +4,8 @@ module Util
     , Size2
     , Rect(Rect), rectIntersect, mkRect
     , rectPos, rectSize
+    , rectX, rectY
+    , rectW, rectH
     , (^+), (^-), (^*)
     , (^+^), (^-^), (^*^)
     , divPoint
@@ -31,6 +33,12 @@ rectPos (Rect x y _ _) = (x, y)
 
 rectSize :: Rect -> Size2
 rectSize (Rect _ _ w h) = (w, h)
+
+rectX, rectY, rectW, rectH :: Rect -> Int
+rectX = px . rectPos
+rectY = py . rectPos
+rectW = px . rectSize
+rectH = py . rectSize
 
 mkRect :: Point2 -> Point2 -> Rect
 mkRect (x, y) (w, h) = Rect x y w h
