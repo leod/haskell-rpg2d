@@ -97,3 +97,4 @@ renderTileMap :: TileMap -> SpriteMap -> IO ()
 renderTileMap tm sm = do
     renderLayer (underground tm) sm
     renderLayer (foreground tm) sm
+    renderGrid tm

@@ -19,6 +19,7 @@ data Player = Player { pos :: !Point2
                      , anim :: !Anim
                      , walking :: !Bool
                      , lastShot :: !Int
+                     , attacking :: !Bool
                      } deriving Show
 
 clip :: Point2
@@ -37,32 +38,43 @@ instance Actor Player where
                           else dirFromInput inp
             runMult = if inCtrl inp then 2 else 1
             vel' = maybe (0, 0) ((^* 2) . dirToVel) walkDir ^*^ (runMult, runMult)
+            attacking' = if inSpace inp then True else False
             pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir  
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
-            anim' = if walking' then updateAnim (6 `div` runMult) 3 $ anim self else fixFrame 0
+            anim' = if walking'
+                        then updateAnim (6 `div` runMult) 3 $ anim self
+                        else
+                            if attacking' then updateAnim 2 2 $ anim self
+                            else fixFrame 0
 
-            lastShot' = if lastShot self > 0 then lastShot self - 1 else 0
-            doShoot = inSpace inp && lastShot' == 0
+            {-lastShot' = if lastShot self > 0 then lastShot self - 1 else 0-}
+            {-doShoot = inSpace inp && lastShot' == 0-}
 
         evMoveCamera (px pos' - viewWidth `div` 2 + px clip `div` 2,
                       py pos' - viewHeight `div` 2 + py clip `div` 2)
 
         myId <- selfId
 
-        when doShoot $
-            evAddActor (newArrow (pos self ^+^ spawnOffset self) myId 7 (dir self))
+        {-when doShoot $-}
+            {-evAddActor (newArrow (pos self ^+^ spawnOffset self) myId 7 (dir self))-}
 
         return self { pos = pos'
                     , dir = fromMaybe (dir self) walkDir
                     , walking = walking'
                     , anim = anim'
-                    , lastShot = if doShoot then 20 else lastShot'
+                    , attacking = attacking'
+                    {-, lastShot = if doShoot then 20 else lastShot'-}
                     }
         
-    posRect self = mkRect (pos self ^+ 4) (12, 17)
-    render sprs self = spriteClipped (getSprite file sprs)
+    posRect self = mkRect (pos self ^+ 4) (24, 40)
+    render sprs self = spriteClipped (getSprite (if attacking self then "player_sword.png" else "player.png") sprs)
                                      (pos self)
                                      (px clip * (animFrame . anim) self, py clip * dirToRow (dir self)) clip
+
+    collision (id, _) self = do
+        when (attacking self) $ do
+            evMessage id (Impact 100 $ dirToVel (dir self) ^* 4) 
+        return self
 
 newPlayer :: Point2 -> AnyActor
 newPlayer p = AnyActor
@@ -72,6 +84,7 @@ newPlayer p = AnyActor
            , walking = False
            , anim = fixFrame 0 
            , lastShot = 0
+           , attacking = False
            }
 
 spawnOffset :: Player -> Point2
