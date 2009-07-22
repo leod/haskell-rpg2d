@@ -107,21 +107,29 @@ renderMS MainState { msGameState = gs
     GL.matrixMode $= GL.Modelview 0
     GL.loadIdentity
     
-    GL.preservingMatrix $ renderToSprite surface $ do 
-        GL.matrixMode $= GL.Projection
-        GL.loadIdentity
-        GL.ortho 0 (fromIntegral viewWidth) 0 (fromIntegral viewHeight) 0 128
+    GL.matrixMode $= GL.Projection
+    GL.loadIdentity
+    GL.ortho 0 (fromIntegral viewWidth) 0 (fromIntegral viewHeight) 0 128
 
+    GL.matrixMode $= GL.Modelview 0
+
+    GL.preservingMatrix $ renderToSprite surface $ do
         GL.translate $ Vector3 (fromIntegral . negate . px $ gsCamera gs)
                                (fromIntegral . negate . py $ gsCamera gs)
                                (0 :: Double)
 
         renderTileMap (gsTileMap gs) sprs
         renderActors (gsActors gs) sprs
+
+        GL.matrixMode $= GL.Modelview 0
+        GL.loadIdentity
+
+        sprite (getSprite "hp.png" sprs) (10, viewHeight - 20)
+
         
-        GL.color $ GL.Color3 0 0 (0::Double)
-        --FTGL.renderFont font "hello world" FTGL.All
-        GL.color $ GL.Color3 1 1 (1::Double)
+    GL.color $ GL.Color3 0 0 (0::Double)
+    --FTGL.renderFont font "hello world" FTGL.All
+    GL.color $ GL.Color3 1 1 (1::Double)
 
     GL.clear [GL.ColorBuffer]
 
@@ -184,7 +192,8 @@ main = do
 
     sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png",
                                        "tileset.png", "ts.png", "arrow.png", "enemy2.png", "enemy3.png",
-                                       "test3.png", "player.png"] -- TMP!
+                                       "test3.png", "player.png", "player_sword.png",
+                                       "hp.png"] -- TMP!
 
     randInit <- randomIO
 

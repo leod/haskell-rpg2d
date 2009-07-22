@@ -160,4 +160,4 @@ zSort = sortBy cmp
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = mapM_ f . zSort . IL.toList $ acts
     where f (_, AnyActor actor) = render sprs actor 
-                                  -- >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)
+                                  >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)
