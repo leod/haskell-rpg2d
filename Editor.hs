@@ -48,10 +48,12 @@ data State = State { stTileset :: Pixbuf
                    , stSelectedTiles :: Rect
                    , stTilesetMouseDown :: Bool
                    , stTilesetMouseStart :: Point2
-                   , stHistory :: [Action]
+                   , stUndo :: [Action]
+                   , stRedo :: [Action]
                    , stMap :: MapState
                    , stPixbufs :: PixbufMap
                    , stTilesetWidget :: DrawingArea
+                   , stMapWidget :: DrawingArea
                    }
 
 type PixbufMap = M.Map String Pixbuf
@@ -121,7 +123,6 @@ drawMap w s = do
         
         layer <- readArray layers 0
         drawLayer layer
-
     
     return True
 
@@ -190,12 +191,20 @@ onMapButtonPress w s Button { eventX, eventY } =
         State { stSelectedTiles = rect
               , stCurrentLayer = layer
               , stMap = map
+              , stUndo = undo
               } <- readIORef s
-        (_, map') <- runAction (actionSetRectangle layer p rect) map
-        modifyIORef s (\s -> s { stMap = map' })
+        (revert, map') <- runAction (actionSetRectangle layer p rect) map
+        modifyIORef s (\s -> s { stMap = map'
+                               , stUndo = revert:undo })
         widgetQueueDraw w
 
         return True
+
+onUndo w s = do
+    State { stUndo = (x:xs), stMap = map, stMapWidget = mapWidget } <- readIORef s
+    (revert, map') <- runAction x map
+    modifyIORef s (\s -> s { stMap = map', stUndo = xs })
+    widgetQueueDraw mapWidget
         
 initMapState :: IO MapState
 initMapState = do
@@ -245,19 +254,21 @@ main = do
     pixbufs <- loadPixbufs M.empty ["test3.png"]
 
     tilesetDraw <- xmlGetWidget xml castToDrawingArea "tilesetDraw"
+    mapDraw <- xmlGetWidget xml castToDrawingArea "mapDraw"
     
     state <- newIORef State { stTileset = undefined
                             , stSelectedTiles = mkRect (3, 1) (1, 1)
                             , stTilesetMouseDown = False
                             , stTilesetMouseStart = (0, 0)
                             , stCurrentLayer = 0
-                            , stHistory = []
+                            , stUndo = []
+                            , stRedo = []
                             , stMap = map
                             , stTilesetWidget = tilesetDraw
+                            , stMapWidget = mapDraw
                             , stPixbufs = pixbufs
                             }
 
-    mapDraw <- xmlGetWidget xml castToDrawingArea "mapDraw"
     on mapDraw exposeEvent $ drawMap mapDraw state
     onButtonPress mapDraw $ onMapButtonPress mapDraw state
     
@@ -266,6 +277,9 @@ main = do
     onButtonRelease tilesetDraw $ onTileSetButtonRelease tilesetDraw state
     onLeaveNotify tilesetDraw $ onTileSetLeave tilesetDraw state
     onMotionNotify tilesetDraw True $ onTileSetMotion tilesetDraw state
+
+    menuUndo <- xmlGetWidget xml castToMenuItem "menuUndo"
+    onActivateLeaf menuUndo $ onUndo menuUndo state
 
     changeLayer 0 state
     onMapSizeChange mapDraw state
