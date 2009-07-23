@@ -151,9 +151,18 @@ initMapState :: IO MapState
 initMapState = do
     let size = (40, 40) 
         layerDim = ((0, 0), size)
-    underground <- newListArray layerDim (repeat $ Just (0, 0)) 
-    otherLayers <- forever $ newListArray layerDim (repeat Nothing)
-    layers <- newListArray (0, numLayers) (underground:otherLayers)
+
+        emptyLayer tileset = do
+            dat <- newListArray layerDim $ repeat Nothing
+            return Layer { lyTileset = tileset, lyData = dat }
+
+    undergroundDat <- newListArray layerDim (repeat $ Just (0, 0)) 
+    let layer0 = Layer { lyTileset = "test3.png", lyData = undergroundDat }
+    layer1 <- emptyLayer "test3.png"
+    layer2 <- emptyLayer "test3.png"
+    layer3 <- emptyLayer "test3.png"
+
+    layers <- newListArray (0, numLayers) $ [layer0,layer1,layer2,layer3]
 
     return MapState { msSize = size
                     , msLayers = layers
@@ -167,6 +176,7 @@ main = do
     onDestroy window mainQuit
 
     tileset <- pixbufNewFromFile "data/test3.png"
+    map <- initMapState
 
     state <- newIORef State { stTileset = tileset
                             , stSelectedTiles = mkRect (3, 1) (1, 1)
@@ -174,6 +184,7 @@ main = do
                             , stTilesetMouseStart = (0, 0)
                             , stCurrentLayer = 0
                             , stHistory = []
+                            , stMap = map
                             }
 
     mapDraw <- xmlGetWidget xml castToDrawingArea "mapDraw"
