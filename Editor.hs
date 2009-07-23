@@ -1,7 +1,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module Main where
 
-import Control.Monad (when, forM, liftM)
+import Control.Monad (when, forM, liftM, forever)
 import Control.Monad.Trans (liftIO)
 import Control.Applicative ((<$>))
 import Data.IORef
@@ -146,6 +146,18 @@ onTileSetMotion w s Motion { eventX, eventY } = do
 onTileSetLeave w s Crossing { eventCrossingMode = m } = 
     modifyIORef s (\s -> s { stTilesetMouseDown = False }) >>
     return True
+
+initMapState :: IO MapState
+initMapState = do
+    let size = (40, 40) 
+        layerDim = ((0, 0), size)
+    underground <- newListArray layerDim (repeat $ Just (0, 0)) 
+    otherLayers <- forever $ newListArray layerDim (repeat Nothing)
+    layers <- newListArray (0, numLayers) (underground:otherLayers)
+
+    return MapState { msSize = size
+                    , msLayers = layers
+                    }
 
 main = do
     initGUI
