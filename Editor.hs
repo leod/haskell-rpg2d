@@ -1,12 +1,14 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module Main where
 
-import Control.Monad (when)
+import Control.Monad (when, forM, liftM)
 import Control.Monad.Trans (liftIO)
 import Control.Applicative ((<$>))
 import Data.IORef
+import Data.Array.MArray
+import Data.Array.IO
 
-import Graphics.UI.Gtk
+import Graphics.UI.Gtk hiding (Action)
 import Graphics.UI.Gtk.Glade
 import Graphics.UI.Gtk.Gdk.Drawable
 import Graphics.UI.Gtk.Gdk.EventM (eventWindow, eventRegion)
@@ -17,7 +19,7 @@ import Consts
 
 data ActorType = ActorType { atName :: String
                            , atProperties :: [String]
-                           , atSprite :: FilePath
+                           , atSprite :: String
                            }
 type ActorTypeId = Int
 
@@ -26,20 +28,41 @@ data ActorInfo = ActorInfo { aTypeId :: ActorTypeId
                            , aPos :: Point2
                            }
 
+type Tile = Point2
+data Layer = Layer { lyTileset :: String
+                   , lyData :: IOArray Point2 (Maybe Tile)
+                   }
+type LayerId = Int
+
+data MapState = MapState { msLayers :: IOArray LayerId Layer
+                         }
+
+-- Returns an action which reverts this action
+newtype Action = Action (MapState -> IO (Action, MapState))
+
 data State = State { stTileset :: Pixbuf
                    , stCurrentLayer :: Int
                    , stSelectedTiles :: Rect
                    , stTilesetMouseDown :: Bool
                    , stTilesetMouseStart :: Point2
+                   , stHistory :: [Action]
                    }
 
+actionSetTiles :: LayerId -> [(Point2, Maybe Tile)] -> Action
+actionSetTiles layerId tiles = Action $ \state -> do
+    Layer { lyData = layer } <- readArray (msLayers state) layerId
+    oldTiles <- mapM (\(ix, _) -> liftM (\t -> (ix, t)) $ readArray layer ix) tiles
+    layer' <- forM tiles (\(ix, t) -> writeArray layer ix t)
+
+    return (actionSetTiles layerId oldTiles, state)
+
 drawTileSet w s = liftIO $ do
-    State { stTileset = tileset, stSelectedTiles = selectedTiles } <- readIORef s
+    State { stTileset = tileset, stSelectedTiles = rect } <- readIORef s
 
     draw <- widgetGetDrawWindow w
     gc <- gcNew draw
     drawPixbuf draw gc tileset 0 0 0 0 (-1) (-1) RgbDitherNone 0 0
-    drawRectangle draw gc False (rectX selectedTiles * tileWidth) (rectY selectedTiles * tileWidth) (rectW selectedTiles * tileWidth) (rectH selectedTiles * tileHeight)
+    drawRectangle draw gc False (rectX rect * tileWidth) (rectY rect * tileWidth) (rectW rect * tileWidth) (rectH rect * tileHeight)
     return True
 
 drawMap w s = do
@@ -124,6 +147,8 @@ main = do
                             , stSelectedTiles = mkRect (3, 1) (1, 1)
                             , stTilesetMouseDown = False
                             , stTilesetMouseStart = (0, 0)
+                            , stCurrentLayer = 0
+                            , stHistory = []
                             }
 
     mapDraw <- xmlGetWidget xml castToDrawingArea "mapDraw"
