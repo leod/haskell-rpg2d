@@ -34,7 +34,8 @@ data Layer = Layer { lyTileset :: String
                    }
 type LayerId = Int
 
-data MapState = MapState { msLayers :: IOArray LayerId Layer
+data MapState = MapState { msSize :: Size2
+                         , msLayers :: IOArray LayerId Layer
                          }
 
 -- Returns an action which reverts this action
@@ -46,15 +47,27 @@ data State = State { stTileset :: Pixbuf
                    , stTilesetMouseDown :: Bool
                    , stTilesetMouseStart :: Point2
                    , stHistory :: [Action]
+                   , stMap :: MapState
                    }
+
+isValidPos :: MapState -> Point2 -> Bool
+isValidPos MapState { msSize = (sx, sy) } (px, py) =
+    px >= 0 && py >= 0 && px < sx && py < sy
 
 actionSetTiles :: LayerId -> [(Point2, Maybe Tile)] -> Action
 actionSetTiles layerId tiles = Action $ \state -> do
-    Layer { lyData = layer } <- readArray (msLayers state) layerId
-    oldTiles <- mapM (\(ix, _) -> liftM (\t -> (ix, t)) $ readArray layer ix) tiles
-    layer' <- forM tiles (\(ix, t) -> writeArray layer ix t)
+    let tiles' = filter (isValidPos state . fst) tiles
+        layers = msLayers state
+    layer@Layer{ lyData = lyData } <- readArray layers layerId
+    oldTiles <- mapM (\(ix, _) -> (,) ix <$> readArray lyData ix) tiles'
+    forM tiles' (\(ix, t) -> writeArray lyData ix t)
 
     return (actionSetTiles layerId oldTiles, state)
+
+actionSetRectangle :: LayerId -> Point2 -> Rect -> Action
+actionSetRectangle layerId (px, py) (Rect tx ty tw th) =
+    let tiles = concatMap (\x -> map (\y -> ((px+x, py+y), Just (tx+x, ty+y))) [0..th]) [0..tw]
+    in actionSetTiles layerId tiles
 
 drawTileSet w s = liftIO $ do
     State { stTileset = tileset, stSelectedTiles = rect } <- readIORef s
@@ -81,7 +94,7 @@ drawMap w s = do
 
 tilesetSize :: IORef State -> IO Size2
 tilesetSize s = do
-    State { stTileset = tileset } <- readIORef s
+    State{ stTileset = tileset } <- readIORef s
     w <- pixbufGetWidth tileset
     h <- pixbufGetHeight tileset
     return (w `div` tileWidth, h `div` tileHeight)
