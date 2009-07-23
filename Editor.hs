@@ -1,12 +1,14 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module Main where
 
-import Control.Monad (when, forM, liftM, forever)
+import Control.Monad 
 import Control.Monad.Trans (liftIO)
 import Control.Applicative ((<$>))
 import Data.IORef
 import Data.Array.MArray
 import Data.Array.IO
+import qualified Data.Map as M
+import Data.Map ((!))
 
 import Graphics.UI.Gtk hiding (Action)
 import Graphics.UI.Gtk.Glade
@@ -39,7 +41,7 @@ data MapState = MapState { msSize :: Size2
                          }
 
 -- Returns an action which reverts this action
-newtype Action = Action (MapState -> IO (Action, MapState))
+newtype Action = Action { runAction :: MapState -> IO (Action, MapState) }
 
 data State = State { stTileset :: Pixbuf
                    , stCurrentLayer :: Int
@@ -48,7 +50,22 @@ data State = State { stTileset :: Pixbuf
                    , stTilesetMouseStart :: Point2
                    , stHistory :: [Action]
                    , stMap :: MapState
+                   , stPixbufs :: PixbufMap
+                   , stTilesetWidget :: DrawingArea
                    }
+
+type PixbufMap = M.Map String Pixbuf
+
+pixbuf :: State -> String -> Pixbuf
+pixbuf State { stPixbufs = bufs } name = bufs ! name
+
+loadPixbuf :: PixbufMap -> String -> IO PixbufMap
+loadPixbuf bufs name = do
+    buf <- pixbufNewFromFile ("data/" ++ name)
+    return $ M.insert name buf bufs 
+
+loadPixbufs :: PixbufMap -> [String] -> IO PixbufMap
+loadPixbufs = foldM loadPixbuf
 
 isValidPos :: MapState -> Point2 -> Bool
 isValidPos MapState { msSize = (sx, sy) } (px, py) =
@@ -66,7 +83,7 @@ actionSetTiles layerId tiles = Action $ \state -> do
 
 actionSetRectangle :: LayerId -> Point2 -> Rect -> Action
 actionSetRectangle layerId (px, py) (Rect tx ty tw th) =
-    let tiles = concatMap (\x -> map (\y -> ((px+x, py+y), Just (tx+x, ty+y))) [0..th]) [0..tw]
+    let tiles = concatMap (\x -> map (\y -> ((px+x, py+y), Just (tx+x, ty+y))) [0..th-1]) [0..tw-1]
     in actionSetTiles layerId tiles
 
 drawTileSet w s = liftIO $ do
@@ -83,12 +100,28 @@ drawMap w s = do
     region <- eventRegion
 
     liftIO $ do
-        ts <- stTileset <$> readIORef s
+        State { stPixbufs = pixbufs
+              , stMap = MapState { msSize = (sizeX, sizeY), msLayers = layers }
+              } <- readIORef s
 
         draw <- widgetGetDrawWindow w
         gc <- gcNew draw
+
+        let drawLayer Layer { lyTileset = ts, lyData = dat } = do
+            let tsPixbuf = pixbufs ! ts 
+
+            -- TODO: cull
+            forM [0 .. sizeX] (\x ->
+                forM [0 .. sizeY] $ \y -> do
+                    t <- readArray dat (x, y)
+                    case t of 
+                        Just (tx, ty) ->
+                            drawPixbuf draw gc tsPixbuf (tx*tileWidth) (ty*tileHeight) (x*tileWidth) (y*tileHeight) tileWidth tileHeight RgbDitherNone 0 0
+                        _ -> return ())
         
-        drawPixbuf draw gc ts 0 0 0 0 32 32 RgbDitherNone 0 0
+        layer <- readArray layers 0
+        drawLayer layer
+
     
     return True
 
@@ -147,6 +180,23 @@ onTileSetLeave w s Crossing { eventCrossingMode = m } =
     modifyIORef s (\s -> s { stTilesetMouseDown = False }) >>
     return True
 
+onMapSizeChange w s = do
+   State { stMap = MapState { msSize = (sizeX, sizeY) } } <- readIORef s 
+   widgetSetSizeRequest w (sizeX*tileWidth) (sizeY*tileHeight)
+
+onMapButtonPress w s Button { eventX, eventY } =
+    let p = eventPosToTilePos eventX eventY
+    in do
+        State { stSelectedTiles = rect
+              , stCurrentLayer = layer
+              , stMap = map
+              } <- readIORef s
+        (_, map') <- runAction (actionSetRectangle layer p rect) map
+        modifyIORef s (\s -> s { stMap = map' })
+        widgetQueueDraw w
+
+        return True
+        
 initMapState :: IO MapState
 initMapState = do
     let size = (40, 40) 
@@ -168,6 +218,21 @@ initMapState = do
                     , msLayers = layers
                     }
 
+changeLayer :: LayerId -> IORef State -> IO ()
+changeLayer lid s = do
+    State { stMap = MapState { msLayers = layers }
+          , stPixbufs = pixbufs
+          , stTilesetWidget = tsWidget } <- readIORef s
+    Layer { lyTileset = tileset } <- readArray layers lid
+    let tsBuf = pixbufs ! tileset
+    modifyIORef s (\s -> s { stCurrentLayer = lid
+                           , stSelectedTiles = Rect 0 0 1 1
+                           , stTileset = tsBuf
+                           })
+    tsWidth <- pixbufGetWidth tsBuf
+    tsHeight <- pixbufGetHeight tsBuf 
+    widgetSetSizeRequest tsWidget tsWidth tsHeight
+
 main = do
     initGUI
     Just xml <- xmlNew "editor.glade"
@@ -175,31 +240,35 @@ main = do
     window <- xmlGetWidget xml castToWindow "window1"
     onDestroy window mainQuit
 
-    tileset <- pixbufNewFromFile "data/test3.png"
     map <- initMapState
 
-    state <- newIORef State { stTileset = tileset
+    pixbufs <- loadPixbufs M.empty ["test3.png"]
+
+    tilesetDraw <- xmlGetWidget xml castToDrawingArea "tilesetDraw"
+    
+    state <- newIORef State { stTileset = undefined
                             , stSelectedTiles = mkRect (3, 1) (1, 1)
                             , stTilesetMouseDown = False
                             , stTilesetMouseStart = (0, 0)
                             , stCurrentLayer = 0
                             , stHistory = []
                             , stMap = map
+                            , stTilesetWidget = tilesetDraw
+                            , stPixbufs = pixbufs
                             }
 
     mapDraw <- xmlGetWidget xml castToDrawingArea "mapDraw"
     on mapDraw exposeEvent $ drawMap mapDraw state
+    onButtonPress mapDraw $ onMapButtonPress mapDraw state
     
-    tilesetDraw <- xmlGetWidget xml castToDrawingArea "tilesetDraw"
     on tilesetDraw exposeEvent $ drawTileSet tilesetDraw state
     onButtonPress tilesetDraw $ onTileSetButtonPress tilesetDraw state
     onButtonRelease tilesetDraw $ onTileSetButtonRelease tilesetDraw state
     onLeaveNotify tilesetDraw $ onTileSetLeave tilesetDraw state
     onMotionNotify tilesetDraw True $ onTileSetMotion tilesetDraw state
 
-    tsWidth <- pixbufGetWidth tileset
-    tsHeight <- pixbufGetHeight tileset
-    widgetSetSizeRequest tilesetDraw tsWidth tsHeight
+    changeLayer 0 state
+    onMapSizeChange mapDraw state
 
     widgetShowAll window
     mainGUI
