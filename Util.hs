@@ -16,6 +16,7 @@ module Util
     , dirToVel
     , dirFromVec
     , oppositeDir
+    , doFromTo
     ) where
 
 import System.Random
@@ -128,3 +129,9 @@ oppositeDir DirLeft = DirRight
 oppositeDir DirRight = DirLeft
 oppositeDir DirUp = DirDown
 oppositeDir DirDown = DirUp
+
+doFromTo :: Monad m => Int -> Int -> (Int -> m ()) -> m ()
+doFromTo from to action =
+    let loop n | n > to = return ()
+               | otherwise = action n >> loop (n+1)
+    in loop from
