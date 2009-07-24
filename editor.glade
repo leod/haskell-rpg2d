@@ -100,7 +100,7 @@
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkImageMenuItem" id="menuUndo">
+                      <widget class="GtkImageMenuItem" id="menuundo">
                         <property name="label">gtk-undo</property>
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
@@ -113,6 +113,46 @@
                         <property name="visible">True</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+            <child>
+              <widget class="GtkMenuItem" id="menuitem5">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">Layer</property>
+                <property name="use_underline">True</property>
+                <child>
+                  <widget class="GtkMenu" id="menu4">
+                    <property name="visible">True</property>
+                    <child>
+                      <widget class="GtkMenuItem" id="menulayer1">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Layer 1</property>
+                        <property name="use_underline">True</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkMenuItem" id="menulayer2">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Layer 2</property>
+                        <property name="use_underline">True</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkMenuItem" id="menulayer3">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Layer 3</property>
+                        <property name="use_underline">True</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkMenuItem" id="menulayer4">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Layer 4</property>
+                        <property name="use_underline">True</property>
                       </widget>
                     </child>
                   </widget>
@@ -199,17 +239,6 @@
                 <property name="homogeneous">True</property>
               </packing>
             </child>
-            <child>
-              <widget class="GtkToolButton" id="toolbutton5">
-                <property name="visible">True</property>
-                <property name="use_underline">True</property>
-                <property name="stock_id">gtk-redo</property>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="homogeneous">True</property>
-              </packing>
-            </child>
           </widget>
           <packing>
             <property name="expand">False</property>
@@ -236,7 +265,7 @@
                         <property name="visible">True</property>
                         <property name="resize_mode">queue</property>
                         <child>
-                          <widget class="GtkDrawingArea" id="tilesetDraw">
+                          <widget class="GtkDrawingArea" id="tilesetdraw">
                             <property name="visible">True</property>
                           </widget>
                         </child>
@@ -267,7 +296,7 @@
                     <property name="visible">True</property>
                     <property name="resize_mode">queue</property>
                     <child>
-                      <widget class="GtkDrawingArea" id="mapDraw">
+                      <widget class="GtkDrawingArea" id="mapdraw">
                         <property name="visible">True</property>
                       </widget>
                     </child>
@@ -285,9 +314,35 @@
           </packing>
         </child>
         <child>
-          <widget class="GtkStatusbar" id="statusbar1">
+          <widget class="GtkHBox" id="hbox1">
             <property name="visible">True</property>
-            <property name="spacing">2</property>
+            <child>
+              <widget class="GtkLabel" id="statuslayer">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">label</property>
+              </widget>
+              <packing>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkVSeparator" id="vseparator1">
+                <property name="visible">True</property>
+                <property name="orientation">vertical</property>
+              </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="statuspos">
+                <property name="visible">True</property>
+              </widget>
+              <packing>
+                <property name="position">2</property>
+              </packing>
+            </child>
           </widget>
           <packing>
             <property name="expand">False</property>

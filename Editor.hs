@@ -77,6 +77,8 @@ data State = State {
                    -- Widgets
                    , stTilesetWidget :: DrawingArea
                    , stMapWidget :: DrawingArea
+                   , stStatusLayer :: Label
+                   , stStatusPos :: Label
                    }
 
 type PixbufMap = M.Map String Pixbuf
@@ -179,16 +181,19 @@ onMapButtonRelease w State{ stMapWidgetState } _ =
     return True
 onMapLeave = onMapButtonRelease
 
-onMapMotion w s@State{ stMapWidgetState, stTileset, stLayer } Motion{ eventX, eventY } =
+onMapMotion w s@State{ stMapWidgetState, stTileset, stLayer, stStatusPos } Motion{ eventX, eventY } =
     let p = eventPosToTilePos eventX eventY
     in do
         MapWidgetState { msMouseDown, msOldPos } <- readIORef stMapWidgetState
 
-        when (msMouseDown && msOldPos /= p) $ do
-            rect <- readIORef stTileset >>= return . tsSelection
-            layer <- readIORef stLayer
-            recordAction s $ actionSetRectangle layer p rect
-            modifyIORef stMapWidgetState $ \s -> s { msOldPos = p }
+        when (msOldPos /= p) $ do
+            labelSetText stStatusPos $ "Position: " ++ show p
+            
+            when msMouseDown $ do
+                rect <- readIORef stTileset >>= return . tsSelection
+                layer <- readIORef stLayer
+                recordAction s $ actionSetRectangle layer p rect
+                modifyIORef stMapWidgetState $ \s -> s { msOldPos = p }
         
         return True
 
@@ -303,8 +308,10 @@ main = do
     window <- xmlGetWidget xml castToWindow "window1"
     onDestroy window mainQuit
 
-    tilesetDraw <- xmlGetWidget xml castToDrawingArea "tilesetDraw"
-    mapDraw <- xmlGetWidget xml castToDrawingArea "mapDraw"
+    tilesetDraw <- xmlGetWidget xml castToDrawingArea "tilesetdraw"
+    mapDraw <- xmlGetWidget xml castToDrawingArea "mapdraw"
+    statusLayer <- xmlGetWidget xml castToLabel "statuslayer"
+    statusPos <- xmlGetWidget xml castToLabel "statuspos"
     
     mapState <- initMap >>= newIORef
     tsState <- newIORef TilesetState { tsSelection = Rect 0 0 1 1
@@ -326,6 +333,8 @@ main = do
                       , stMapWidget = mapDraw
                       , stPixbufs = pixbufState
                       , stMapWidgetState = mapWidgetState
+                      , stStatusLayer = statusLayer
+                      , stStatusPos = statusPos
                       }
 
     on mapDraw exposeEvent $ drawMap mapDraw state
@@ -340,8 +349,12 @@ main = do
     onLeaveNotify tilesetDraw $ onTileSetLeave tilesetDraw state
     onMotionNotify tilesetDraw True $ onTileSetMotion tilesetDraw state
 
-    menuUndo <- xmlGetWidget xml castToMenuItem "menuUndo"
+    menuUndo <- xmlGetWidget xml castToMenuItem "menuundo"
     onActivateLeaf menuUndo $ onUndo menuUndo state
+
+    forM [1..4] $ \n -> do
+        w <- xmlGetWidget xml castToMenuItem $ "menulayer"++show n
+        onActivateLeaf w $ changeLayer (n-1) state
 
     changeLayer 0 state
     onMapSizeChange mapDraw state
@@ -371,9 +384,11 @@ initMap = do
                }
 
 changeLayer :: LayerId -> State -> IO ()
-changeLayer lid s@State{ stMap, stPixbufs, stTilesetWidget, stLayer, stTileset } = do
-    Map { mapLayers = layers } <- readIORef stMap
-    Layer { layerTileset = tileset } <- readArray layers lid
+changeLayer lid s@State{ stMap, stPixbufs, stTilesetWidget, stLayer, stTileset, stStatusLayer } = do
+    putStrLn $ "changing layer to " ++ show (lid+1)
+
+    Map{ mapLayers = layers } <- readIORef stMap
+    Layer{ layerTileset = tileset } <- readArray layers lid
 
     writeIORef stLayer lid
     modifyIORef stTileset $ \s -> s { tsSelection = Rect 0 0 1 1 }
@@ -382,3 +397,6 @@ changeLayer lid s@State{ stMap, stPixbufs, stTilesetWidget, stLayer, stTileset }
     tsWidth <- pixbufGetWidth tsBuf
     tsHeight <- pixbufGetHeight tsBuf 
     widgetSetSizeRequest stTilesetWidget tsWidth tsHeight
+    widgetQueueDraw stTilesetWidget
+
+    labelSetText stStatusLayer $ "Layer " ++ show (lid+1)
