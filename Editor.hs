@@ -40,14 +40,18 @@ data Layer = Layer { layerTileset :: String
                    }
 type LayerId = Int
 
-data MapState = MapState { msSize :: Size2
-                         , msLayers :: IOArray LayerId Layer
-                         }
+data Map = Map { mapSize :: Size2
+               , mapLayers :: IOArray LayerId Layer
+               }
 
 data TilesetState = TilesetState { tsSelection :: Rect
                                  , tsMouseDown :: Bool
                                  , tsMouseStart :: Point2
                                  }
+
+data MapWidgetState = MapWidgetState { msMouseDown :: Bool
+                                     , msOldPos :: Point2
+                                     }
 
 type History = ([EditAction], [EditAction])
 
@@ -61,8 +65,11 @@ data State = State {
                    -- Undo/Redo
                    , stHistory :: IORef History
 
-                   -- Map state
-                   , stMap :: IORef MapState
+                   -- The map
+                   , stMap :: IORef Map
+
+                   -- Map widget state
+                   , stMapWidgetState :: IORef MapWidgetState
 
                    -- Map of loaded pixbufs to avoid loading things twice
                    , stPixbufs :: IORef PixbufMap 
@@ -90,12 +97,14 @@ loadPixbufs = foldM loadPixbuf
 -------------------------------------------------------------------------------
 
 -- Returns an action which reverts this action
-newtype EditAction = EditAction { runEditAction :: MapState -> IO (EditAction, MapState) }
+newtype EditAction = EditAction { runEditAction :: Map -> IO (EditAction, Map) }
 
 actionSetTiles :: LayerId -> [(Point2, Maybe Tile)] -> EditAction
 actionSetTiles layerId tiles = EditAction $ \state -> do
+    putStrLn "setting tiles" -- DEBUG
+
     let tiles' = filter (isValidPos state . fst) tiles
-        layers = msLayers state
+        layers = mapLayers state
     layer@Layer{ layerData = layerData } <- readArray layers layerId
     oldTiles <- mapM (\(ix, _) -> (,) ix <$> readArray layerData ix) tiles'
     forM tiles' (\(ix, t) -> writeArray layerData ix t)
@@ -107,8 +116,8 @@ actionSetRectangle layerId (px, py) (Rect tx ty tw th) =
     let tiles = concatMap (\x -> map (\y -> ((px+x, py+y), Just (tx+x, ty+y))) [0..th-1]) [0..tw-1]
     in actionSetTiles layerId tiles
 
-isValidPos :: MapState -> Point2 -> Bool
-isValidPos MapState { msSize = (sx, sy) } (px, py) =
+isValidPos :: Map -> Point2 -> Bool
+isValidPos Map { mapSize = (sx, sy) } (px, py) =
     px >= 0 && py >= 0 && px < sx && py < sy
 
 -------------------------------------------------------------------------------
@@ -119,8 +128,10 @@ drawMap w State{ stPixbufs, stMap } = do
     region <- eventRegion
 
     liftIO $ do
+        putStrLn "drawing map" -- DEBUG
+
         pixbufs <- readIORef stPixbufs
-        MapState { msLayers = layers, msSize = (sizeX, sizeY) } <- readIORef stMap
+        Map { mapLayers = layers, mapSize = (sizeX, sizeY) } <- readIORef stMap
 
         draw <- widgetGetDrawWindow w
         gc <- gcNew draw
@@ -145,17 +156,36 @@ drawMap w State{ stPixbufs, stMap } = do
     return True
 
 onMapSizeChange w State{ stMap } = do
-   MapState { msSize = (sizeX, sizeY) } <- readIORef stMap
+   Map { mapSize = (sizeX, sizeY) } <- readIORef stMap
 
    widgetSetSizeRequest w (sizeX*tileWidth) (sizeY*tileHeight)
 
-onMapButtonPress w s@State{ stTileset, stLayer, stMap, stHistory } Button{ eventX, eventY } =
+onMapButtonPress w s@State{ stTileset, stLayer, stMap, stHistory, stMapWidgetState } Button{ eventX, eventY } =
     let p = eventPosToTilePos eventX eventY
     in do
         rect <- readIORef stTileset >>= return . tsSelection
         layer <- readIORef stLayer
         recordAction s $ actionSetRectangle layer p rect
+        modifyIORef stMapWidgetState $ \s -> s { msMouseDown = True, msOldPos = p }
 
+        return True
+
+onMapButtonRelease w State{ stMapWidgetState } _ =
+    modifyIORef stMapWidgetState (\s -> s { msMouseDown = False }) >>
+    return True
+onMapLeave = onMapButtonRelease
+
+onMapMotion w s@State{ stMapWidgetState, stTileset, stLayer } Motion{ eventX, eventY } =
+    let p = eventPosToTilePos eventX eventY
+    in do
+        MapWidgetState { msMouseDown, msOldPos } <- readIORef stMapWidgetState
+
+        when (msMouseDown && msOldPos /= p) $ do
+            rect <- readIORef stTileset >>= return . tsSelection
+            layer <- readIORef stLayer
+            recordAction s $ actionSetRectangle layer p rect
+            modifyIORef stMapWidgetState $ \s -> s { msOldPos = p }
+        
         return True
 
 -------------------------------------------------------------------------------
@@ -165,8 +195,8 @@ currentTileset :: State -> IO Pixbuf
 currentTileset State{ stLayer, stPixbufs, stMap } = do
     layer <- readIORef stLayer
     pixbufs <- readIORef stPixbufs
-    MapState{ msLayers } <- readIORef stMap
-    Layer{ layerTileset } <- readArray msLayers layer
+    Map{ mapLayers } <- readIORef stMap
+    Layer{ layerTileset } <- readArray mapLayers layer
     return $ pixbufs ! layerTileset
 
 tilesetSize :: State -> IO Size2
@@ -181,6 +211,8 @@ tilesetRectInBounds (sizeX, sizeY) rect =
     rectX2 rect <= sizeX && rectY2 rect <= sizeY && rectX rect >= 0 && rectY rect >= 0
 
 drawTileSet w s@State{ stTileset } = liftIO $ do
+    putStrLn "drawing tileset" -- DEBUG
+
     TilesetState{ tsSelection = rect } <- readIORef stTileset
     tileset <- currentTileset s
 
@@ -208,10 +240,6 @@ onTileSetButtonPress w s@State{ stTileset } Button{ eventX, eventY } =
 
         return True 
             
-onTileSetButtonRelease w State{ stTileset } Button { } =
-    modifyIORef stTileset (\s -> s { tsMouseDown = False }) >>
-    return True
-
 onTileSetMotion w s@State{ stTileset } Motion{ eventX, eventY } = do
     TilesetState { tsMouseDown = down
                  , tsMouseStart = (x, y)
@@ -226,14 +254,17 @@ onTileSetMotion w s@State{ stTileset } Motion{ eventX, eventY } = do
                          (max 1 . (+1) . abs $ y' - y)
 
         when (rect' /= rect && tilesetRectInBounds tsSize rect') $ do
+            putStrLn "changing rect" -- DEBUG
+
             modifyIORef stTileset (\s -> s { tsSelection = rect' })
             widgetQueueDraw w
     
     return True
 
-onTileSetLeave w State{ stTileset } Crossing{ eventCrossingMode = m } = 
+onTileSetButtonRelease w State{ stTileset } _ =
     modifyIORef stTileset (\s -> s { tsMouseDown = False }) >>
     return True
+onTileSetLeave = onTileSetButtonRelease
 
 -------------------------------------------------------------------------------
 -- History
@@ -265,17 +296,17 @@ main = do
     window <- xmlGetWidget xml castToWindow "window1"
     onDestroy window mainQuit
 
-
     tilesetDraw <- xmlGetWidget xml castToDrawingArea "tilesetDraw"
     mapDraw <- xmlGetWidget xml castToDrawingArea "mapDraw"
     
-    mapState <- initMapState >>= newIORef
+    mapState <- initMap >>= newIORef
     tsState <- newIORef TilesetState { tsSelection = Rect 0 0 1 1
                                      , tsMouseDown = False
                                      , tsMouseStart = (0, 0)
                                      }
     historyState <- newIORef ([], [])
     currentLayerState <- newIORef 0
+    mapWidgetState <- newIORef MapWidgetState { msMouseDown = False, msOldPos = (0, 0) }
     
     pixbufs <- loadPixbufs M.empty ["test3.png"]
     pixbufState <- newIORef pixbufs
@@ -287,10 +318,14 @@ main = do
                       , stTilesetWidget = tilesetDraw
                       , stMapWidget = mapDraw
                       , stPixbufs = pixbufState
+                      , stMapWidgetState = mapWidgetState
                       }
 
     on mapDraw exposeEvent $ drawMap mapDraw state
     onButtonPress mapDraw $ onMapButtonPress mapDraw state
+    onButtonRelease mapDraw $ onMapButtonRelease mapDraw state
+    onLeaveNotify mapDraw $ onMapLeave mapDraw state
+    onMotionNotify mapDraw True $ onMapMotion mapDraw state
     
     on tilesetDraw exposeEvent $ drawTileSet tilesetDraw state
     onButtonPress tilesetDraw $ onTileSetButtonPress tilesetDraw state
@@ -307,8 +342,8 @@ main = do
     widgetShowAll window
     mainGUI
 
-initMapState :: IO MapState
-initMapState = do
+initMap :: IO Map
+initMap = do
     let size = (40, 40) 
         layerDim = ((0, 0), size^-1)
 
@@ -324,13 +359,13 @@ initMapState = do
 
     layers <- newListArray (0, numLayers-1) [layer0,layer1,layer2,layer3]
 
-    return MapState { msSize = size
-                    , msLayers = layers
+    return Map { mapSize = size
+                    , mapLayers = layers
                     }
 
 changeLayer :: LayerId -> State -> IO ()
 changeLayer lid s@State{ stMap, stPixbufs, stTilesetWidget, stLayer, stTileset } = do
-    MapState { msLayers = layers } <- readIORef stMap
+    Map { mapLayers = layers } <- readIORef stMap
     Layer { layerTileset = tileset } <- readArray layers lid
 
     writeIORef stLayer lid
