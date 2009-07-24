@@ -93,11 +93,11 @@ loadPixbufs :: PixbufMap -> [String] -> IO PixbufMap
 loadPixbufs = foldM loadPixbuf
 
 -------------------------------------------------------------------------------
--- EditActions
+-- Edit actions
 -------------------------------------------------------------------------------
 
--- Returns an action which reverts this action
-newtype EditAction = EditAction { runEditAction :: Map -> IO (EditAction, Map) }
+-- Returns an action which reverts this action, or Nothing if no state was changed
+newtype EditAction = EditAction { runEditAction :: Map -> IO (Maybe EditAction, Map) }
 
 actionSetTiles :: LayerId -> [(Point2, Maybe Tile)] -> EditAction
 actionSetTiles layerId tiles = EditAction $ \state -> do
@@ -109,7 +109,11 @@ actionSetTiles layerId tiles = EditAction $ \state -> do
     oldTiles <- mapM (\(ix, _) -> (,) ix <$> readArray layerData ix) tiles'
     forM tiles' (\(ix, t) -> writeArray layerData ix t)
 
-    return (actionSetTiles layerId oldTiles, state)
+    let undo = if oldTiles == tiles'
+                   then Nothing
+                   else Just $ actionSetTiles layerId oldTiles
+
+    return (undo, state)
 
 actionSetRectangle :: LayerId -> Point2 -> Rect -> EditAction
 actionSetRectangle layerId (px, py) (Rect tx ty tw th) =
@@ -282,9 +286,12 @@ recordAction :: State -> EditAction -> IO ()
 recordAction State { stHistory, stMap, stMapWidget } action = do
     map <- readIORef stMap 
     (revert, map') <- runEditAction action map
-    writeIORef stMap map'
-    modifyIORef stHistory $ first (revert:)
-    widgetQueueDraw stMapWidget
+    case revert of
+        Just a -> do
+            writeIORef stMap map'
+            modifyIORef stHistory $ first (a:)
+            widgetQueueDraw stMapWidget
+        Nothing -> return ()
         
 -------------------------------------------------------------------------------
 -- Main
@@ -360,8 +367,8 @@ initMap = do
     layers <- newListArray (0, numLayers-1) [layer0,layer1,layer2,layer3]
 
     return Map { mapSize = size
-                    , mapLayers = layers
-                    }
+               , mapLayers = layers
+               }
 
 changeLayer :: LayerId -> State -> IO ()
 changeLayer lid s@State{ stMap, stPixbufs, stTilesetWidget, stLayer, stTileset } = do
