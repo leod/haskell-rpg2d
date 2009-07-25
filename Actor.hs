@@ -22,6 +22,7 @@ import Control.Monad.Reader
 import qualified Graphics.UI.SDL as SDL (Event)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import Control.Monad.Random
+import Control.Applicative
 import Data.List (sortBy)
 import Data.Function (on)
 
@@ -108,11 +109,26 @@ class Show a => Actor a where
 
 data AnyActor = forall a. Actor a => AnyActor a
 
+instance Actor AnyActor where
+    neededResources (AnyActor a) = neededResources a
+    update (AnyActor a) = AnyActor <$> update a
+    render sm (AnyActor a) = render sm a
+    message m (AnyActor a) = AnyActor <$> message m a
+    posRect (AnyActor a) = posRect a
+    isSolid (AnyActor a) = isSolid a
+    collision aa (AnyActor a) = AnyActor <$> collision aa a
+
 instance Show AnyActor where
     show (AnyActor a) = show a
 
 type ActorId = Int
 type ActorList = IL AnyActor
+
+addActor :: AnyActor -> ActorList -> ActorList
+addActor = IL.insert
+
+removeActor :: ActorId -> ActorList -> ActorList
+removeActor = IL.delete
 
 withSelfId :: ActorId -> Act a -> Act a
 withSelfId id = local (\s -> s { usSelfId = id })
@@ -120,9 +136,9 @@ withSelfId id = local (\s -> s { usSelfId = id })
 mapActors :: ((ActorId, AnyActor) -> Act AnyActor) -> ActorList -> Act ActorList
 mapActors g acts = IL.mapM f acts
     where f :: (ActorId, AnyActor) -> Act AnyActor
-          f arec@(id, actor) = withSelfId id $ g arec
+          f actor@(id, _) = withSelfId id $ g actor
 
-updateActors = mapActors (\(_, AnyActor actor) -> return . AnyActor =<< update actor)
+updateActors = mapActors $ update . snd 
 
 dispatchMessages :: ActorList -> [MessageRec] -> Act ActorList
 dispatchMessages = foldl f . return 
@@ -130,34 +146,28 @@ dispatchMessages = foldl f . return
           f mlist (MessageRec from to msg) = do
               list <- mlist
               case to `IL.lookup` list of
-                  Just (AnyActor actor) -> do
+                  Just actor -> do
                       actor' <- withSelfId to $ message msg actor 
-                      return $ IL.update to (AnyActor actor') list
+                      return $ IL.update to actor' list
                   Nothing -> return list -- Actor was deleted before message reached it
 
 collisions :: ActorList -> Act ActorList
-collisions acts = IL.mapM testAll acts
+collisions acts = mapActors testAll acts
     where testAll :: (ActorId, AnyActor) -> Act AnyActor
-          testAll (id, actor@(AnyActor aa)) = withSelfId id $ foldM testOne actor (IL.toList acts)
+          testAll (id1, actor) = foldM testOne actor $ IL.toList acts
               where -- Test intersection of one actor with all other actors
                     testOne :: AnyActor -> (ActorId, AnyActor) -> Act AnyActor
-                    testOne (AnyActor actor) arec@(id2, AnyActor actor2) 
-                        | id2 == id = return $ AnyActor actor
-                        | otherwise = do
-                            if rectIntersect (posRect actor) (posRect actor2)
-                                then liftM AnyActor $ collision arec actor
-                                else
-                                    return $ AnyActor actor
-                                    -- I don't get it! Change that line to just 'mactor' => 0 FPS without -O2
-                                    -- But return $ AnyActor actor and mactor should be just the same?
-                                    -- It's probably lazy evaluation again :)
+                    testOne actor1 arec@(id2, actor2) =
+                        if id1 == id2 || rectIntersect (posRect actor) (posRect actor2)
+                            then collision arec actor
+                            else return actor
 
 zSort :: [(ActorId, AnyActor)] -> [(ActorId, AnyActor)]
 zSort = sortBy cmp
     where cmp = flip (compare `on` ypos)
-          ypos (_, AnyActor a) = py . rectPos . posRect $ a 
+          ypos (_, a) = py . rectPos . posRect $ a 
 
 renderActors :: ActorList -> SpriteMap -> IO ()
 renderActors acts sprs = mapM_ f . zSort . IL.toList $ acts
-    where f (_, AnyActor actor) = render sprs actor 
-                                  >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)
+    where f (_, actor) = render sprs actor 
+                         >> rectangle (GL.Color4 1 0 0 0.5) (posRect actor)
