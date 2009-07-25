@@ -158,7 +158,7 @@ collisions acts = mapActors testAll acts
               where -- Test intersection of one actor with all other actors
                     testOne :: AnyActor -> (ActorId, AnyActor) -> Act AnyActor
                     testOne actor1 arec@(id2, actor2) =
-                        if id1 == id2 || rectIntersect (posRect actor) (posRect actor2)
+                        if id1 == id2 || rectIntersect (posRect actor1) (posRect actor2)
                             then collision arec actor
                             else return actor
 
