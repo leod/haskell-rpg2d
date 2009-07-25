@@ -38,7 +38,7 @@ instance Actor Player where
                           else dirFromInput inp
             runMult = if inCtrl inp then 2 else 1
             vel' = maybe (0, 0) ((^* 2) . dirToVel) walkDir ^*^ (runMult, runMult)
-            attacking' = if inSpace inp then True else False
+            attacking' = inSpace inp
             pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir  
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
             anim' = if walking'
@@ -72,7 +72,7 @@ instance Actor Player where
                                      (px clip * (animFrame . anim) self, py clip * dirToRow (dir self)) clip
      
     collision (id, _) self = do
-        when (attacking self) $ do
+        when (attacking self) $
             evMessage id (Impact 100 $ dirToVel (dir self) ^* 4) 
         return self
 

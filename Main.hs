@@ -139,8 +139,8 @@ renderMS MainState { msGameState = gs
 
     GL.matrixMode $= GL.Modelview 0
     GL.loadIdentity
-    GL.scale ((fromIntegral screenW) / (fromIntegral viewWidth))
-             ((fromIntegral screenH) / (fromIntegral viewHeight))
+    GL.scale (fromIntegral screenW / fromIntegral viewWidth)
+             (fromIntegral screenH / fromIntegral viewHeight)
              (1::Double)
     
     sprite surface (0, 0)
