@@ -84,7 +84,7 @@ data State = State {
 type PixbufMap = M.Map String Pixbuf
 
 pixbuf :: State -> String -> IO Pixbuf
-pixbuf s name = readIORef (stPixbufs s) >>= return . (! name)
+pixbuf s name = (! name) <$> readIORef (stPixbufs s) 
 
 loadPixbuf :: PixbufMap -> String -> IO PixbufMap
 loadPixbuf bufs name = do
@@ -109,7 +109,7 @@ actionSetTiles layerId tiles = EditAction $ \state -> do
         layers = mapLayers state
     layer@Layer{ layerData = layerData } <- readArray layers layerId
     oldTiles <- mapM (\(ix, _) -> (,) ix <$> readArray layerData ix) tiles'
-    forM tiles' (\(ix, t) -> writeArray layerData ix t)
+    forM_ tiles' $ uncurry (writeArray layerData)
 
     let undo = if oldTiles == tiles'
                    then Nothing
@@ -169,7 +169,7 @@ onMapSizeChange w State{ stMap } = do
 onMapButtonPress w s@State{ stTileset, stLayer, stMap, stHistory, stMapWidgetState } Button{ eventX, eventY } =
     let p = eventPosToTilePos eventX eventY
     in do
-        rect <- readIORef stTileset >>= return . tsSelection
+        rect <- tsSelection <$> readIORef stTileset
         layer <- readIORef stLayer
         recordAction s $ actionSetRectangle layer p rect
         modifyIORef stMapWidgetState $ \s -> s { msMouseDown = True, msOldPos = p }
@@ -190,7 +190,7 @@ onMapMotion w s@State{ stMapWidgetState, stTileset, stLayer, stStatusPos } Motio
             labelSetText stStatusPos $ "Position: " ++ show p
             
             when msMouseDown $ do
-                rect <- readIORef stTileset >>= return . tsSelection
+                rect <- tsSelection <$> readIORef stTileset
                 layer <- readIORef stLayer
                 recordAction s $ actionSetRectangle layer p rect
                 modifyIORef stMapWidgetState $ \s -> s { msOldPos = p }

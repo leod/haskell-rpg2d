@@ -34,7 +34,7 @@ testMap = TileMap { underground = underground'
     where underground' = array ((0, 0), mapSize')
                          [((x, y), Just (0, 0)) | x <- [0..px mapSize'], y <- [0..py mapSize']]
           foreground' = array ((0, 0), mapSize')
-                         [((x, y), if (x == 0 || y == 0 || x == px mapSize' - 1 || y == py mapSize' - 1) then Just (0, 5) else Nothing) | x <- [0..px mapSize'], y <- [0..py mapSize']]
+                         [((x, y), if x == 0 || y == 0 || x == px mapSize' - 1 || y == py mapSize' - 1 then Just (0, 5) else Nothing) | x <- [0..px mapSize'], y <- [0..py mapSize']]
           mapSize' = (20, 20)
 
 -- Debugging
