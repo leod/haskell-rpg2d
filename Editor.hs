@@ -10,6 +10,12 @@ import Data.Array.MArray
 import Data.Array.IO
 import qualified Data.Map as M
 import Data.Map ((!))
+import Text.JSON
+import Data.Maybe (mapMaybe)
+
+-- Temp
+import Text.JSON.Pretty 
+import System.Exit
 
 import Graphics.UI.Gtk 
 import Graphics.UI.Gtk.Glade
@@ -93,6 +99,36 @@ loadPixbuf bufs name = do
 
 loadPixbufs :: PixbufMap -> [String] -> IO PixbufMap
 loadPixbufs = foldM loadPixbuf
+
+-------------------------------------------------------------------------------
+-- Serializing/Deserializing map state
+-------------------------------------------------------------------------------
+
+-- Having the tiles array be an IOArray basically forces everything to be IO 
+-- Yay!
+
+serializeMap :: Map -> IO String
+serializeMap Map { mapSize, mapLayers } = render . pp_value <$> result
+    where result = do
+              ls <- layers mapLayers
+              return $ JSObject (toJSObject [
+                    ("size", showJSON mapSize)
+                  , ("map", ls)
+                  ]) 
+          layers l = liftM JSArray $ getAssocs l >>= mapM layer
+          layer (id, Layer { layerTileset=ts, layerData=d }) = do
+              assocs <- getAssocs d
+              return $ JSObject (toJSObject [
+                    ("layer", showJSON id)
+                  , ("tileset", showJSON ts)
+                  , ("tiles", tiles assocs)
+                  ])
+          tiles = JSArray . mapMaybe tile
+          tile (p, Just t) = Just $ JSArray [showJSON p, showJSON t]
+          tile (_, Nothing) = Nothing
+
+unserializeMap :: String -> IO Map
+unserializeMap = undefined
 
 -------------------------------------------------------------------------------
 -- Edit actions
@@ -324,6 +360,10 @@ main = do
     
     pixbufs <- loadPixbufs M.empty ["test3.png"]
     pixbufState <- newIORef pixbufs
+
+    map <- initMap
+    serializeMap map >>= putStrLn
+    exitSuccess
 
     let state = State { stTileset = tsState
                       , stLayer = currentLayerState
