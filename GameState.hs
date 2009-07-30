@@ -12,4 +12,4 @@ data GameState = GameState { gsTileMap :: TileMap
                            , gsRandom :: DefGen
                            , gsMessages :: [MessageRec]
                            , gsCamera :: Point2
-                           } deriving Show
+                           } deriving (Show, Read)
