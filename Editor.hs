@@ -15,6 +15,9 @@ import Data.Maybe (mapMaybe)
 
 -- Temp
 import Text.JSON.Pretty 
+import Text.JSON.Types 
+import Control.Monad.Maybe
+import Text.JSON.String 
 import System.Exit
 
 import Graphics.UI.Gtk 
@@ -105,30 +108,42 @@ loadPixbufs = foldM loadPixbuf
 -------------------------------------------------------------------------------
 
 -- Having the tiles array be an IOArray basically forces everything to be IO 
--- Yay!
+-- Yay! This is all quite clumsy now.
 
 serializeMap :: Map -> IO String
 serializeMap Map { mapSize, mapLayers } = render . pp_value <$> result
     where result = do
               ls <- layers mapLayers
-              return $ JSObject (toJSObject [
+              return $ makeObj [
                     ("size", showJSON mapSize)
                   , ("map", ls)
-                  ]) 
+                  ] 
           layers l = liftM JSArray $ getAssocs l >>= mapM layer
           layer (id, Layer { layerTileset=ts, layerData=d }) = do
               assocs <- getAssocs d
-              return $ JSObject (toJSObject [
+              return $ makeObj [
                     ("layer", showJSON id)
                   , ("tileset", showJSON ts)
                   , ("tiles", tiles assocs)
-                  ])
+                  ]
           tiles = JSArray . mapMaybe tile
           tile (p, Just t) = Just $ JSArray [showJSON p, showJSON t]
           tile (_, Nothing) = Nothing
 
-unserializeMap :: String -> IO Map
-unserializeMap = undefined
+unserializeMap :: String -> IO (Maybe Map)
+unserializeMap str = 
+    let js = runGetJSON readJSValue str
+    in case js of
+           Right a -> parse a
+           Left _ -> return Nothing
+
+    where parse (JSObject o) = runMaybeT $ do
+              size <- psize o
+              layers <- pmap o
+              return $ Map { mapSize=size, mapLayers=layers }
+          parse _ = return Nothing 
+          psize o = return $ get_field o "size"
+          pmap = undefined
 
 -------------------------------------------------------------------------------
 -- Edit actions
