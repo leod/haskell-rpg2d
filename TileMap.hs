@@ -21,7 +21,6 @@ import Graphics.Rendering.OpenGL.GL as GL
 
 type Tile = Maybe Point2
 type Layer = Array Point2 Tile
---data TileMap = TileMap Layer Layer Layer Layer
 data TileMap = TileMap { underground :: Layer
                        , foreground :: Layer
                        , mapSize :: Point2
@@ -41,12 +40,12 @@ testMap = TileMap { underground = underground'
 renderGrid :: TileMap -> IO ()
 renderGrid tm = withColor (GL.Color4 0 0 1 0.2) $ GL.renderPrimitive GL.Lines $ do
     forM_ [0 .. w] (\x -> do
-       GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) (0::Double)
-       GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) (fromIntegral $ h*tileHeight :: Double))
+       GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) (0 :: GLfloat)
+       GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) (fromIntegral $ h*tileHeight :: GLfloat))
 
     forM_ [0 .. h] (\y -> do
-       GL.vertex $ GL.Vertex2 (0::Double) (fromIntegral $ y*tileHeight)
-       GL.vertex $ GL.Vertex2 (fromIntegral $ w*tileWidth) (fromIntegral $ y*tileHeight :: Double))
+       GL.vertex $ GL.Vertex2 (0 :: GLfloat) (fromIntegral $ y*tileHeight)
+       GL.vertex $ GL.Vertex2 (fromIntegral $ w*tileWidth) (fromIntegral $ y*tileHeight :: GLfloat))
 
     where (w, h) = mapSize tm
 
@@ -73,9 +72,9 @@ renderLayer layer sm =
     where spr = "test3.png" `getSprite` sm
           tile (_, Nothing) = return ()
           tile ((x', y'), Just (xTile, yTile)) =
-               let (x, y) = (fromIntegral x' * tileWidth, fromIntegral y' * tileHeight) :: (Double, Double)
-                   (cx, cy) = (fromIntegral $ tileWidth * xTile, fromIntegral $ tileHeight * yTile) :: (Double, Double)
-                   (cw, ch) = (tileWidth, tileHeight) :: (Double, Double)
+               let (x, y) = (fromIntegral x' * tileWidth, fromIntegral y' * tileHeight) :: (GLfloat, GLfloat)
+                   (cx, cy) = (fromIntegral $ tileWidth * xTile, fromIntegral $ tileHeight * yTile) :: (GLfloat, GLfloat)
+                   (cw, ch) = (tileWidth, tileHeight) :: (GLfloat, GLfloat)
                    (tx, ty) = (sprWidthRatio spr * (cx / sprWidth spr),
                                sprHeightRatio spr * (cy / sprHeight spr))
                    (tw, th) = (sprWidthRatio spr * (cw / sprWidth spr),

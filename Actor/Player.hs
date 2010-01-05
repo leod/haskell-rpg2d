@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards, NamedFieldPuns #-}
 
-module Player (newPlayer) where
+module Actor.Player (newPlayer) where
 
 import Data.Maybe
 import Control.Monad
@@ -11,7 +11,7 @@ import Input
 import Render
 import Consts
 import Anim
-import Arrow
+import Actor.Arrow
 
 data Player = Player { pos :: !Point2
                      , vel :: !Point2

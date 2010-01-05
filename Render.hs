@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 import System.Mem.Weak
 import qualified Graphics.UI.SDL as SDL
 import Graphics.UI.SDL.Image as Image
-import Graphics.Rendering.OpenGL.GL (($=), Vector3(..))
+import Graphics.Rendering.OpenGL.GL (($=), Vector3(..), Vertex3(..), GLfloat)
 import qualified Graphics.Rendering.OpenGL.GL as GL
 import Graphics.Rendering.OpenGL.GLU as GLU
 import Foreign.Ptr (nullPtr)
@@ -42,17 +42,17 @@ addSprites = foldM addSprite
 getSprite :: String -> SpriteMap -> Sprite
 getSprite name = fromMaybe (error name) . Map.lookup name
 
-rectangle :: GL.Color4 Double -> Rect -> IO ()
+rectangle :: GL.Color4 GLfloat -> Rect -> IO ()
 rectangle c (Rect x y w h) = withColor c $ GL.renderPrimitive GL.LineLoop $ do
-    GL.vertex $ GL.Vertex3 x1 y1 0
+    GL.vertex $ Vertex3 x1 y1 0
     GL.vertex $ GL.Vertex3 x2 y1 0
     GL.vertex $ GL.Vertex3 x2 y2 0
     GL.vertex $ GL.Vertex3 x1 y2 0
     
-    where x1 = fromIntegral x :: Double
-          y1 = fromIntegral y :: Double
-          x2 = x1 + fromIntegral w :: Double
-          y2 = y1 + fromIntegral h :: Double
+    where x1 = fromIntegral x :: GLfloat
+          y1 = fromIntegral y :: GLfloat
+          x2 = x1 + fromIntegral w :: GLfloat
+          y2 = y1 + fromIntegral h :: GLfloat
 
 emptySprite :: Int -> Int -> IO Sprite
 emptySprite w h = do
@@ -97,12 +97,12 @@ renderToSprite spr act =
 -- The following is taken mostly from Graphics.DrawingCombinators
 
 data Sprite = Sprite { sprTexture :: GL.TextureObject
-                     , sprWidth :: Double
-                     , sprHeight :: Double 
+                     , sprWidth :: GLfloat
+                     , sprHeight :: GLfloat 
 
                      -- Ratio surface/padded surface
-                     , sprWidthRatio :: Double
-                     , sprHeightRatio :: Double
+                     , sprWidthRatio :: GLfloat
+                     , sprHeightRatio :: GLfloat
                      } deriving Show
 
 nextPowerOf2 x = head . dropWhile (< x) . iterate (* 2) $ 1
@@ -182,14 +182,14 @@ withTexture tex act = do
 withTranslate :: Point2 -> IO a -> IO a
 withTranslate (x, y) act =
     GL.preservingMatrix $ do
-        GL.translate $ Vector3 (fromIntegral x) (fromIntegral y) (0 :: Double)
+        GL.translate $ Vector3 (fromIntegral x) (fromIntegral y) (0 :: GLfloat)
         act
 
-withColor :: GL.Color4 Double -> IO a -> IO a
+withColor :: GL.Color4 GLfloat -> IO a -> IO a
 withColor c act = do
     GL.color c
     res <- act
-    GL.color $ GL.Color4 1 1 1 (1::Double)
+    GL.color $ GL.Color4 1 1 1 (1 :: GLfloat)
     return res
 
 spriteClipped :: Sprite -> Point2 -> Point2 -> Point2 -> IO ()
@@ -203,7 +203,7 @@ spriteClipped spr p (cx', cy') (cw', ch') =
                         sprHeightRatio spr * (ch / sprHeight spr))
 
         GL.texCoord $ GL.TexCoord2 tx (th+ty)
-        GL.vertex   $ GL.Vertex2 0 (0::Double)
+        GL.vertex   $ GL.Vertex2 0 (0 :: GLfloat)
 
         GL.texCoord $ GL.TexCoord2 (tw+tx) (th+ty)
         GL.vertex   $ GL.Vertex2 cw 0

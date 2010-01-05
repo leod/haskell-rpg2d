@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards, NamedFieldPuns #-}
 
-module Arrow (newArrow) where
+module Actor.Arrow (newArrow) where
 
 import Control.Monad
 
