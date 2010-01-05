@@ -1,4 +1,4 @@
-module NPC (newNPC) where
+module Actor.NPC (newNPC) where
 
 import System.IO.Unsafe
 import Control.Monad

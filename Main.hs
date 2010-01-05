@@ -17,15 +17,16 @@ import Actor
 import Input
 import TileMap
 import GameState
-import Player
 import Consts
-import Enemy
 import Render
 import Input
 import Util 
 import qualified IdentityList as IL
 import IdentityList ((+:))
-import Arrow
+
+import Actor.Player
+import Actor.Enemy
+import Actor.Arrow
 
 clampCamera :: GameState -> Point2 -> Point2
 clampCamera gs = min maxX . max 0 *** min maxY . max 0 
@@ -116,7 +117,7 @@ renderMS MainState { msGameState = gs
     GL.preservingMatrix $ renderToSprite surface $ do
         GL.translate $ Vector3 (fromIntegral . negate . px $ gsCamera gs)
                                (fromIntegral . negate . py $ gsCamera gs)
-                               (0 :: Double)
+                               (0 :: GL.GLfloat)
 
         renderTileMap (gsTileMap gs) sprs
         renderActors (gsActors gs) sprs
@@ -127,9 +128,9 @@ renderMS MainState { msGameState = gs
         sprite (getSprite "hp.png" sprs) (10, viewHeight - 20)
 
         
-    GL.color $ GL.Color3 0 0 (0::Double)
+    GL.color $ GL.Color3 0 0 (0 :: GL.GLdouble)
     --FTGL.renderFont font "hello world" FTGL.All
-    GL.color $ GL.Color3 1 1 (1::Double)
+    GL.color $ GL.Color3 1 1 (1 :: GL.GLdouble)
 
     GL.clear [GL.ColorBuffer]
 
@@ -141,7 +142,7 @@ renderMS MainState { msGameState = gs
     GL.loadIdentity
     GL.scale (fromIntegral screenW / fromIntegral viewWidth)
              (fromIntegral screenH / fromIntegral viewHeight)
-             (1::Double)
+             (1 :: GL.GLdouble)
     
     sprite surface (0, 0)
 

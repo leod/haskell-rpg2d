@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Enemy (newEnemy) where
+module Actor.Enemy (newEnemy) where
 
 import System.IO.Unsafe
 import Control.Monad
