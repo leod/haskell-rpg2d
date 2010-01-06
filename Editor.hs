@@ -95,10 +95,8 @@ data State = State {
 -------------------------------------------------------------------------------
 -- Convert our map structures from and to MapData
 -------------------------------------------------------------------------------
-toMapData :: State -> IO MapData.MapData
-toMapData state = do
-    map <- readIORef $ stMap state 
-
+toMapData :: Map -> IO MapData.MapData
+toMapData map = do
     let layer Layer { layerTileset = ts, layerData = d } = do
             tiles <- getAssocs d 
             let tiles' = array ((0, 0), mapSize map ^- 1) tiles
@@ -115,6 +113,24 @@ toMapData state = do
 
     return MapData.MapData { MapData.mdTileMap = tm }
 
+fromMapData :: MapData.MapData -> IO Map
+fromMapData MapData.MapData { MapData.mdTileMap = tm } = do
+    let layer MapData.Layer { MapData.layerTileset = ts, MapData.layerTiles = d } = do
+            arr <- thaw d
+            return Layer { layerTileset = ts, layerData = arr }
+
+    let layers = MapData.tmLayers tm
+    layers' <- mapM layer layers >>= newListArray (0, length layers - 1) 
+
+    return Map { mapSize = MapData.tmSize tm
+               , mapLayers = layers'
+               }
+
+save :: FilePath -> Map -> IO ()
+save f m = toMapData m >>= MapData.saveMap f
+
+load :: FilePath -> IO Map
+load f = MapData.loadMap f >>= fromMapData
 
 -------------------------------------------------------------------------------
 -- Pixbuf cache
@@ -367,8 +383,9 @@ main = do
                       , stStatusPos = statusPos
                       }
 
-    toMapData state >>= print
-    exitSuccess
+    {-initMap >>= save "lolwut.map"-}
+    {-exitSuccess-}
+    load "lolwut.map" >>= writeIORef (stMap state)
 
     on mapDraw exposeEvent $ drawMap mapDraw state
     onButtonPress mapDraw $ onMapButtonPress mapDraw state
@@ -418,8 +435,6 @@ initMap = do
 
 changeLayer :: LayerId -> State -> IO ()
 changeLayer lid s@State{ stMap, stPixbufs, stTilesetWidget, stLayer, stTileset, stStatusLayer } = do
-    putStrLn $ "changing layer to " ++ show (lid+1)
-
     Map{ mapLayers = layers } <- readIORef stMap
     Layer{ layerTileset = tileset } <- readArray layers lid
 
