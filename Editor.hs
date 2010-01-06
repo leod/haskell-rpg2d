@@ -12,6 +12,7 @@ import qualified Data.Map as M
 import Data.Map ((!))
 import Text.JSON
 import Data.Maybe (mapMaybe)
+import Data.Array (array)
 
 -- Temp
 import Text.JSON.Pretty 
@@ -28,6 +29,7 @@ import Graphics.UI.Gtk.Gdk.Events hiding (eventRegion)
 
 import Util 
 import Consts
+import qualified MapData 
 
 -------------------------------------------------------------------------------
 -- State
@@ -90,6 +92,33 @@ data State = State {
                    , stStatusPos :: Label
                    }
 
+-------------------------------------------------------------------------------
+-- Convert our map structures from and to MapData
+-------------------------------------------------------------------------------
+toMapData :: State -> IO MapData.MapData
+toMapData state = do
+    map <- readIORef $ stMap state 
+
+    let layer Layer { layerTileset = ts, layerData = d } = do
+            tiles <- getAssocs d 
+            let tiles' = array ((0, 0), mapSize map ^- 1) tiles
+
+            return MapData.Layer { MapData.layerTileset = ts
+                                 , MapData.layerTiles = tiles' }
+
+    layers <- getElems $ mapLayers map
+    layers' <- mapM layer layers
+
+    let tm = MapData.TileMap { MapData.tmLayers = layers'
+                             , MapData.tmSize = mapSize map
+                             }
+
+    return MapData.MapData { MapData.mdTileMap = tm }
+
+
+-------------------------------------------------------------------------------
+-- Pixbuf cache
+-------------------------------------------------------------------------------
 type PixbufMap = M.Map String Pixbuf
 
 pixbuf :: State -> String -> IO Pixbuf
@@ -104,48 +133,6 @@ loadPixbufs :: PixbufMap -> [String] -> IO PixbufMap
 loadPixbufs = foldM loadPixbuf
 
 -------------------------------------------------------------------------------
--- Serializing/Deserializing map state
--------------------------------------------------------------------------------
-
--- Having the tiles array be an IOArray basically forces everything to be IO 
--- Yay! This is all quite clumsy now.
-
-serializeMap :: Map -> IO String
-serializeMap Map { mapSize, mapLayers } = render . pp_value <$> result
-    where result = do
-              ls <- layers mapLayers
-              return $ makeObj [
-                    ("size", showJSON mapSize)
-                  , ("map", ls)
-                  ] 
-          layers l = liftM JSArray $ getAssocs l >>= mapM layer
-          layer (id, Layer { layerTileset=ts, layerData=d }) = do
-              assocs <- getAssocs d
-              return $ makeObj [
-                    ("layer", showJSON id)
-                  , ("tileset", showJSON ts)
-                  , ("tiles", tiles assocs)
-                  ]
-          tiles = JSArray . mapMaybe tile
-          tile (p, Just t) = Just $ JSArray [showJSON p, showJSON t]
-          tile (_, Nothing) = Nothing
-
-unserializeMap :: String -> IO (Maybe Map)
-unserializeMap str = 
-    let js = runGetJSON readJSValue str
-    in case js of
-           Right a -> parse a
-           Left _ -> return Nothing
-
-    where parse (JSObject o) = runMaybeT $ do
-              size <- psize o
-              layers <- pmap o
-              return $ Map { mapSize=size, mapLayers=layers }
-          parse _ = return Nothing 
-          psize o = return $ get_field o "size"
-          pmap = undefined
-
--------------------------------------------------------------------------------
 -- Edit actions
 -------------------------------------------------------------------------------
 
@@ -154,8 +141,6 @@ newtype EditAction = EditAction { runEditAction :: Map -> IO (Maybe EditAction, 
 
 actionSetTiles :: LayerId -> [(Point2, Maybe Tile)] -> EditAction
 actionSetTiles layerId tiles = EditAction $ \state -> do
-    putStrLn "setting tiles" -- DEBUG
-
     let tiles' = filter (isValidPos state . fst) tiles
         layers = mapLayers state
     layer@Layer{ layerData = layerData } <- readArray layers layerId
@@ -185,8 +170,6 @@ drawMap w State{ stPixbufs, stMap } = do
     region <- eventRegion
 
     liftIO $ do
-        putStrLn "drawing map" -- DEBUG
-
         pixbufs <- readIORef stPixbufs
         Map { mapLayers = layers, mapSize = (sizeX, sizeY) } <- readIORef stMap
 
@@ -271,8 +254,6 @@ tilesetRectInBounds (sizeX, sizeY) rect =
     rectX2 rect <= sizeX && rectY2 rect <= sizeY && rectX rect >= 0 && rectY rect >= 0
 
 drawTileSet w s@State{ stTileset } = liftIO $ do
-    putStrLn "drawing tileset" -- DEBUG
-
     TilesetState{ tsSelection = rect } <- readIORef stTileset
     tileset <- currentTileset s
 
@@ -314,8 +295,6 @@ onTileSetMotion w s@State{ stTileset } Motion{ eventX, eventY } = do
                          (max 1 . (+1) . abs $ y' - y)
 
         when (rect' /= rect && tilesetRectInBounds tsSize rect') $ do
-            putStrLn "changing rect" -- DEBUG
-
             modifyIORef stTileset (\s -> s { tsSelection = rect' })
             widgetQueueDraw w
     
@@ -376,10 +355,6 @@ main = do
     pixbufs <- loadPixbufs M.empty ["test3.png"]
     pixbufState <- newIORef pixbufs
 
-    map <- initMap
-    serializeMap map >>= putStrLn
-    exitSuccess
-
     let state = State { stTileset = tsState
                       , stLayer = currentLayerState
                       , stHistory = historyState
@@ -391,6 +366,9 @@ main = do
                       , stStatusLayer = statusLayer
                       , stStatusPos = statusPos
                       }
+
+    toMapData state >>= print
+    exitSuccess
 
     on mapDraw exposeEvent $ drawMap mapDraw state
     onButtonPress mapDraw $ onMapButtonPress mapDraw state
@@ -420,7 +398,7 @@ main = do
 initMap :: IO Map
 initMap = do
     let size = (40, 40) 
-        layerDim = ((0, 0), size^-1)
+        layerDim = ((0, 0), size ^- 1)
 
         emptyLayer tileset = do
             dat <- newListArray layerDim $ repeat Nothing

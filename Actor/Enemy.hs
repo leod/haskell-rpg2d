@@ -58,12 +58,12 @@ instance Actor Enemy where
             pos %= (px pos', 0)
 
         tm <- tileMap
-        when ((px pos' + 20) >= mapPixelWidth tm) $ do
-            pos %= (mapPixelWidth tm - 20, py pos')
+        when ((px pos' + 20) >= tmPixelWidth tm) $ do
+            pos %= (tmPixelWidth tm - 20, py pos')
             dir %= DirLeft
         
-        when ((py pos' + 20) >= mapPixelHeight tm) $ do
-            pos %= (px pos', mapPixelHeight tm - 20)
+        when ((py pos' + 20) >= tmPixelHeight tm) $ do
+            pos %= (px pos', tmPixelHeight tm - 20)
             dir %= DirDown
 
         velTime <- get extraVelTime

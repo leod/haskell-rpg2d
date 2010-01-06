@@ -31,8 +31,8 @@ import Actor.Arrow
 clampCamera :: GameState -> Point2 -> Point2
 clampCamera gs = min maxX . max 0 *** min maxY . max 0 
     where tm = gsTileMap gs
-          maxX = mapPixelWidth  tm - viewWidth
-          maxY = mapPixelHeight tm - viewHeight
+          maxX = tmPixelWidth  tm - viewWidth
+          maxY = tmPixelHeight tm - viewHeight
 
 processEvents :: GameState -> [Event] -> GameState
 processEvents = foldl' f

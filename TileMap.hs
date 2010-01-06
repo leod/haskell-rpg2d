@@ -1,13 +1,13 @@
 module TileMap
     ( Tile
-    , TileMap
+    , TileMap(..)
+    , Layer(..)
     , renderTileMap
-    , mapSize
-    , mapWidth
-    , mapHeight
-    , mapPixelSize
-    , mapPixelWidth
-    , mapPixelHeight
+    , tmWidth
+    , tmHeight
+    , tmPixelSize
+    , tmPixelWidth
+    , tmPixelHeight
     , testMap
     ) where
 
@@ -20,21 +20,28 @@ import Render
 import Graphics.Rendering.OpenGL.GL as GL
 
 type Tile = Maybe Point2
-type Layer = Array Point2 Tile
-data TileMap = TileMap { underground :: Layer
-                       , foreground :: Layer
-                       , mapSize :: Point2
-                       } deriving Show
+data Layer = Layer { layerTileset :: String
+                   , layerTiles :: Array Point2 Tile
+                   } deriving (Show, Read)
+data TileMap = TileMap { tmLayers :: [Layer]
+                       , tmSize :: Point2
+                       } deriving (Show, Read)
 
-testMap = TileMap { underground = underground'
-                  , foreground = foreground'
-                  , mapSize = mapSize'
+testMap = TileMap { tmLayers = [ Layer { layerTileset = "test3.png"
+                                       , layerTiles = underground }
+                               , Layer { layerTileset = "test3.png"
+                                       , layerTiles = foreground }
+                               ]
+                  , tmSize = tmSize
                   }
-    where underground' = array ((0, 0), mapSize')
-                         [((x, y), Just (0, 0)) | x <- [0..px mapSize'], y <- [0..py mapSize']]
-          foreground' = array ((0, 0), mapSize')
-                         [((x, y), if x == 0 || y == 0 || x == px mapSize' - 1 || y == py mapSize' - 1 then Just (0, 5) else Nothing) | x <- [0..px mapSize'], y <- [0..py mapSize']]
-          mapSize' = (20, 20)
+    where underground = array ((0, 0), tmSize)
+                         [((x, y), Just (0, 0)) | x <- [0..px tmSize], y <- [0..py tmSize]]
+          foreground = array ((0, 0), tmSize)
+                         [((x, y), if x == 0 || y == 0 || x == px tmSize - 1 || y == py tmSize - 1
+                                       then Just (0, 5)
+                                       else Nothing)
+                          | x <- [0..px tmSize], y <- [0..py tmSize]]
+          tmSize = (20, 20)
 
 -- Debugging
 renderGrid :: TileMap -> IO ()
@@ -47,29 +54,29 @@ renderGrid tm = withColor (GL.Color4 0 0 1 0.2) $ GL.renderPrimitive GL.Lines $ 
        GL.vertex $ GL.Vertex2 (0 :: GLfloat) (fromIntegral $ y*tileHeight)
        GL.vertex $ GL.Vertex2 (fromIntegral $ w*tileWidth) (fromIntegral $ y*tileHeight :: GLfloat))
 
-    where (w, h) = mapSize tm
+    where (w, h) = tmSize tm
 
-mapWidth :: TileMap -> Int
-mapWidth = px . mapSize
+tmWidth :: TileMap -> Int
+tmWidth = px . tmSize
 
-mapHeight :: TileMap -> Int
-mapHeight = px . mapSize
+tmHeight :: TileMap -> Int
+tmHeight = px . tmSize
 
-mapPixelSize :: TileMap -> Size2
-mapPixelSize = (^*^ (tileWidth, tileHeight)) . mapSize
+tmPixelSize :: TileMap -> Size2
+tmPixelSize = (^*^ (tileWidth, tileHeight)) . tmSize
 
-mapPixelWidth :: TileMap -> Int
-mapPixelWidth = px . mapPixelSize
+tmPixelWidth :: TileMap -> Int
+tmPixelWidth = px . tmPixelSize
 
-mapPixelHeight :: TileMap -> Int
-mapPixelHeight = py . mapPixelSize
+tmPixelHeight :: TileMap -> Int
+tmPixelHeight = py . tmPixelSize
 
-renderLayer :: Layer -> SpriteMap -> IO ()
-renderLayer layer sm =
-    let tiles = assocs layer
+renderLayer :: SpriteMap -> Layer -> IO ()
+renderLayer sm Layer { layerTiles = tilearray, layerTileset = tileset } =
+    let tiles = assocs tilearray
     in withTexture (sprTexture spr) $ GL.renderPrimitive GL.Quads $ forM_ tiles tile
         
-    where spr = "test3.png" `getSprite` sm
+    where spr = tileset `getSprite` sm
           tile (_, Nothing) = return ()
           tile ((x', y'), Just (xTile, yTile)) =
                let (x, y) = (fromIntegral x' * tileWidth, fromIntegral y' * tileHeight) :: (GLfloat, GLfloat)
@@ -94,6 +101,5 @@ renderLayer layer sm =
 
 renderTileMap :: TileMap -> SpriteMap -> IO ()
 renderTileMap tm sm = do
-    renderLayer (underground tm) sm
-    renderLayer (foreground tm) sm
+    forM_ (tmLayers tm) $ renderLayer sm
     renderGrid tm
