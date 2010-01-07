@@ -140,6 +140,7 @@ surfaceToSprite surf = do
 
     GL.textureFunction $= GL.Modulate
     GL.textureFilter GL.Texture2D $= ((GL.Linear', Nothing), GL.Linear')
+    GL.textureFilter GL.Texture2D $= ((GL.Nearest, Nothing), GL.Nearest)
     GL.textureWrapMode GL.Texture2D GL.S $= (GL.Mirrored, GL.Repeat)
     GL.textureWrapMode GL.Texture2D GL.T $= (GL.Mirrored, GL.Repeat)
 

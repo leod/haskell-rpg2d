@@ -26,12 +26,12 @@ data Enemy = Enemy { pos_ :: !Point2
 $(deriveAccessors ''Enemy)
 
 clip :: (Int, Int)
-clip = (32, 48)
+clip = (37, 40)
 
 dirToRow DirDown = 0
 dirToRow DirLeft = 1
-dirToRow DirRight = 2
-dirToRow DirUp = 3
+dirToRow DirRight = 3
+dirToRow DirUp = 2
 
 vel = dirToVel . dir_
 
@@ -40,7 +40,7 @@ instance Actor Enemy where
 
     -- Some experimentation with using State+Accessors
     update = execStateT $ do
-        anim %: updateAnim 6 3
+        anim %: updateAnim 8 2
 
         v <- liftM dirToVel $ get dir
         ve <- get extraVel
@@ -71,15 +71,15 @@ instance Actor Enemy where
             then extraVel %= (0, 0)
             else extraVelTime %: subtract 1
 
-    render sprs self = spriteClipped (getSprite "enemy3.png" sprs)
+    render sprs self = spriteClipped (getSprite "enemy2.png" sprs)
                                      (pos_ self)
-                                     (px clip * (animFrame . anim_) self, py clip * dirToRow (dir_ self))
+                                     (px clip * dirToRow (dir_ self), py clip * (animFrame . anim_) self)
                                      clip
     
     posRect self = mkRect (pos_ self ^+^ (5, 12)) (20, 20)
 
     message (Impact dmg imvel) self =
-        return self { extraVel_ = imvel ^* 3 ^+^ vel self
+        return self { extraVel_ = imvel ^* 6 ^+^ vel self
                     , extraVelTime_ = 2
                     , dir_ = (oppositeDir . dirFromVec) imvel
                     }

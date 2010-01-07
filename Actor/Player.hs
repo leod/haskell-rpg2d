@@ -23,9 +23,9 @@ data Player = Player { pos :: !Point2
                      } deriving Show
 
 clip :: Point2
-clip = (32, 48)
+clip = (23, 26)
 
-file = "player.png"
+file = "linkanim.png"
 
 instance Actor Player where
     neededResources _ = [file]
@@ -42,32 +42,32 @@ instance Actor Player where
             pos' = pos self ^+^ vel' ^+^ maybe (0, 0) (strideVel inp) walkDir  
             walking' = inLArrow inp || inRArrow inp || inUArrow inp || inDArrow inp
             anim' = if walking'
-                        then updateAnim (6 `div` runMult) 3 $ anim self
+                        then updateAnim (4 `div` runMult) 7 $ anim self
                         else
                             if attacking' then updateAnim 2 2 $ anim self
                             else fixFrame 0
 
-            {-lastShot' = if lastShot self > 0 then lastShot self - 1 else 0-}
-            {-doShoot = inSpace inp && lastShot' == 0-}
+            lastShot' = if lastShot self > 0 then lastShot self - 1 else 0
+            doShoot = inSpace inp && lastShot' == 0
 
         evMoveCamera (px pos' - viewWidth `div` 2 + px clip `div` 2,
                       py pos' - viewHeight `div` 2 + py clip `div` 2)
 
         myId <- selfId
 
-        {-when doShoot $-}
-            {-evAddActor (newArrow (pos self ^+^ spawnOffset self) myId 7 (dir self))-}
+        when doShoot $
+            evAddActor (newArrow (pos self ^+^ spawnOffset self) myId 7 (dir self))
 
         return self { pos = pos'
                     , dir = fromMaybe (dir self) walkDir
                     , walking = walking'
                     , anim = anim'
                     , attacking = attacking'
-                    {-, lastShot = if doShoot then 20 else lastShot'-}
+                    , lastShot = if doShoot then 20 else lastShot'
                     }
         
-    posRect self = mkRect (pos self ^+ 4) (24, 40)
-    render sprs self = spriteClipped (getSprite (if attacking self then "player_sword.png" else "player.png") sprs)
+    posRect self = mkRect (pos self ^+ 4) (14, 20)
+    render sprs self = spriteClipped (getSprite (if attacking self then undefined else file) sprs)
                                      (pos self)
                                      (px clip * (animFrame . anim) self, py clip * dirToRow (dir self)) clip
      
@@ -117,7 +117,7 @@ strideVel Input { inLArrow = True } DirDown  = (-1, 0)
 strideVel Input { inRArrow = True } DirDown  = (1, 0)
 strideVel _ _ = (0, 0)
 
-dirToRow DirDown = 0
-dirToRow DirLeft = 1
+dirToRow DirDown = 3
+dirToRow DirLeft = 0
 dirToRow DirRight = 2
-dirToRow DirUp = 3
+dirToRow DirUp = 1

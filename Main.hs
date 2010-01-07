@@ -5,7 +5,7 @@ import Data.Array
 import Control.Monad
 import Control.Monad.Writer
 import System.Random
-import Data.Map as Map
+import qualified Data.Map as Map
 import qualified Graphics.UI.SDL as SDL
 import Graphics.Rendering.OpenGL as GL
 import Graphics.Rendering.FTGL as FTGL
@@ -28,6 +28,10 @@ import Actor.Player
 import Actor.Enemy
 import Actor.Arrow
 
+screenWidth, screenHeight :: Num a => a
+screenWidth = 1024
+screenHeight = 768
+
 clampCamera :: GameState -> Point2 -> Point2
 clampCamera gs = min maxX . max 0 *** min maxY . max 0 
     where tm = gsTileMap gs
@@ -41,6 +45,11 @@ processEvents = foldl' f
           f gs (RemoveActor id) = gs { gsActors =id `IL.delete` gsActors gs }
           f gs (MoveCamera p) = gs { gsCamera = clampCamera gs p }
           f gs _ = gs
+
+debugEvents :: [Event] -> [String]
+debugEvents = filter (/= "") . map f
+    where f (Debug id str) = "Actor #" ++ (show id) ++ ": " ++ str
+          f _ = ""
 
 getMessages :: [Event] -> [MessageRec]
 getMessages = foldl' f []
@@ -66,7 +75,7 @@ pollEvents = poll []
                   SDL.NoEvent -> return evs
                   _ -> poll $ ev : evs
 
-updateGS :: GameState -> Input -> GameState
+updateGS :: GameState -> Input -> (GameState, [String])
 updateGS gs input =
     let actors = gsActors gs
         random = gsRandom gs
@@ -86,7 +95,7 @@ updateGS gs input =
         -- Process events
         gs' = gs { gsActors = actors'', gsRandom = random' }
                   `processEvents` evs
-    in gs'
+    in (gs', debugEvents evs)
 
 renderMS :: MainState -> IO ()
 renderMS MainState { msGameState = gs
@@ -96,23 +105,18 @@ renderMS MainState { msGameState = gs
                    , msScreenW = screenW
                    , msScreenH = screenH
                    } = do
-    GL.clear [GL.ColorBuffer]
-
     GL.blend $= GL.Enabled
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
 
+    -- First render the scene to a 320x240 texture
+    GL.clear [GL.ColorBuffer]
+
     GL.matrixMode $= GL.Projection
     GL.loadIdentity
     GL.ortho 0 (fromIntegral viewWidth) 0 (fromIntegral viewHeight) 0 128
 
     GL.matrixMode $= GL.Modelview 0
     GL.loadIdentity
-    
-    GL.matrixMode $= GL.Projection
-    GL.loadIdentity
-    GL.ortho 0 (fromIntegral viewWidth) 0 (fromIntegral viewHeight) 0 128
-
-    GL.matrixMode $= GL.Modelview 0
 
     GL.preservingMatrix $ renderToSprite surface $ do
         GL.translate $ Vector3 (fromIntegral . negate . px $ gsCamera gs)
@@ -124,19 +128,13 @@ renderMS MainState { msGameState = gs
 
         GL.matrixMode $= GL.Modelview 0
         GL.loadIdentity
-
-        sprite (getSprite "hp.png" sprs) (10, viewHeight - 20)
-
         
-    GL.color $ GL.Color3 0 0 (0 :: GL.GLdouble)
-    --FTGL.renderFont font "hello world" FTGL.All
-    GL.color $ GL.Color3 1 1 (1 :: GL.GLdouble)
-
+    -- Now render the texture, upscaled
     GL.clear [GL.ColorBuffer]
 
     GL.matrixMode $= GL.Projection
     GL.loadIdentity
-    GL.ortho 0 800 600 0 0 128
+    GL.ortho 0 (fromIntegral screenW) (fromIntegral screenH) 0 0 128
 
     GL.matrixMode $= GL.Modelview 0
     GL.loadIdentity
@@ -145,6 +143,9 @@ renderMS MainState { msGameState = gs
              (1 :: GL.GLdouble)
     
     sprite surface (0, 0)
+    {-renderTileMap (gsTileMap gs) sprs-}
+    {-renderActors (gsActors gs) sprs-}
+
 
     SDL.glSwapBuffers
 
@@ -155,7 +156,7 @@ mainLoop mstate (time, frames) = do
     -- Update
     let input = updateInput (msInput mstate) sdlEvents
 
-        gstate = updateGS (msGameState mstate) input
+        (gstate, debug) = updateGS (msGameState mstate) input
         mstate' = mstate { msGameState = gstate
                          , msInput = input } 
 
@@ -164,6 +165,9 @@ mainLoop mstate (time, frames) = do
         random  = gsRandom gstate
         tm      = gsTileMap gstate
         msgs    = gsMessages gstate
+
+    -- Debug events
+    mapM_ putStrLn debug
 
     -- Render
     renderMS mstate'
@@ -177,7 +181,6 @@ mainLoop mstate (time, frames) = do
                      then (time', 0)
                      else (time, frames+1)
 
-    {-print $ length (IL.toList actors)-}
     SDL.delay 20
 
     if inQuit input
@@ -186,10 +189,10 @@ mainLoop mstate (time, frames) = do
 
 main = do
     SDL.init [SDL.InitEverything]
-    SDL.setVideoMode 800 600 32 [SDL.OpenGL]
+    SDL.setVideoMode screenWidth screenHeight 32 [SDL.OpenGL]
 
     GL.clearColor $= GL.Color4 0 0 0 0
-    GL.viewport $= (GL.Position 0 0, GL.Size 800 600)
+    GL.viewport $= (GL.Position 0 0, GL.Size screenWidth screenHeight)
 
     sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png",
                                        "tileset.png", "ts.png", "arrow.png", "enemy2.png", "enemy3.png",
@@ -214,15 +217,15 @@ main = do
                            , msInput = emptyInput
                            , msFont = font
                            , msSurface = surface
-                           , msScreenW = 800
-                           , msScreenH = 600
+                           , msScreenW = screenWidth
+                           , msScreenH = screenHeight
                            }
     print actors
     mainLoop mstate (0, 0)
 
     where actors = --addArrs 199 $
-                   newEnemy (300, 100) +:
-                   newEnemy (100, 30) +:
+                   newEnemy (300, 50) +:
+                   {-newEnemy (100, 30) +:-}
                    newPlayer (100, 100) +: IL.empty
           arr n = newArrow (0, n * 20) 0 1 DirLeft 
           addArrs 0 il = il
