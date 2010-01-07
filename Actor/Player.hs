@@ -89,9 +89,9 @@ instance Actor Player where
             doShoot = inSpace inp && lastShot' == 0
 
 
-        evDebug $ "stride: [" ++ show strideDir ++ ":" ++ show stride ++ "] vel: " ++ show walkDir ++ ":" ++ show vel' ++ "]"
-        when (isTileSet 1 (pos' ^/^ (tileWidth, tileHeight)) tm) $
-            evDebug "coll"
+        {-evDebug $ "stride: [" ++ show strideDir ++ ":" ++ show stride ++ "] vel: " ++ show walkDir ++ ":" ++ show vel' ++ "]"-}
+        {-when (isTileSet 1 (pos' ^/^ (tileWidth, tileHeight)) tm) $-}
+            {-evDebug "coll"-}
 
         evMoveCamera (px pos' - viewWidth `div` 2 + px clip `div` 2,
                       py pos' - viewHeight `div` 2 + py clip `div` 2)
