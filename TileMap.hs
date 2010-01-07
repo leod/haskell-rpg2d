@@ -32,9 +32,9 @@ data TileMap = TileMap { tmLayers :: [Layer]
                        , tmSize :: Point2
                        } deriving (Show, Read)
 
-testMap = TileMap { tmLayers = [ Layer { layerTileset = "ts.png"
+testMap = TileMap { tmLayers = [ Layer { layerTileset = "ts2.png"
                                        , layerTiles = underground }
-                               , Layer { layerTileset = "ts.png"
+                               , Layer { layerTileset = "ts2.png"
                                        , layerTiles = foreground }
                                ]
                   , tmSize = tmSize
@@ -109,4 +109,4 @@ renderLayer sm Layer { layerTiles = tilearray, layerTileset = tileset } =
 renderTileMap :: TileMap -> SpriteMap -> IO ()
 renderTileMap tm sm = do
     forM_ (tmLayers tm) $ renderLayer sm
-    renderGrid tm
+    {-renderGrid tm-}

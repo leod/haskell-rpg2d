@@ -197,7 +197,7 @@ main = do
     sprs <- newSpriteMap `addSprites` ["test2.png", "npc.bmp", "linkanim.png", "test.png", "enemy.png",
                                        "tileset.png", "ts.png", "arrow.png", "enemy2.png", "enemy3.png",
                                        "test3.png", "player.png", "player_sword.png",
-                                       "hp.png"] -- TMP!
+                                       "hp.png", "ts2.png"] -- TMP!
 
     randInit <- randomIO
 
