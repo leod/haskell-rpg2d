@@ -79,6 +79,8 @@ data State = State {
                    -- The map
                    , stMap :: IORef Map
 
+                   , stFileName :: IORef (Maybe String)
+
                    -- Map widget state
                    , stMapWidgetState :: IORef MapWidgetState
 
@@ -324,7 +326,7 @@ onTileSetLeave = onTileSetButtonRelease
 -------------------------------------------------------------------------------
 -- History
 -------------------------------------------------------------------------------
-onUndo w State{ stHistory, stMap, stMapWidget } = do
+onUndo State{ stHistory, stMap, stMapWidget } = do
     map <- readIORef stMap
     ((action:tail), _) <- readIORef stHistory
     (revert, map') <- runEditAction action map
@@ -334,7 +336,7 @@ onUndo w State{ stHistory, stMap, stMapWidget } = do
 
 -- Run an action and add an undo action for it
 recordAction :: State -> EditAction -> IO ()
-recordAction State { stHistory, stMap, stMapWidget } action = do
+recordAction State{ stHistory, stMap, stMapWidget } action = do
     map <- readIORef stMap 
     (revert, map') <- runEditAction action map
     case revert of
@@ -343,6 +345,50 @@ recordAction State { stHistory, stMap, stMapWidget } action = do
             modifyIORef stHistory $ first (a:)
             widgetQueueDraw stMapWidget
         Nothing -> return ()
+
+-------------------------------------------------------------------------------
+-- Saving/Loading
+-------------------------------------------------------------------------------
+onSaveAs parentWin State{ stMap, stFileName } = do
+    dialog <- fileChooserDialogNew (Just "Choose a file name to save to")
+                                   (Just parentWin)
+                                   FileChooserActionSave
+                                   [ ("gtk-cancel", ResponseCancel)
+                                   , ("gtk-save", ResponseAccept)]
+    widgetShow dialog
+    response <- dialogRun dialog
+    case response of
+        ResponseAccept -> do Just fileName <- fileChooserGetFilename dialog 
+                             readIORef stMap >>= save fileName
+                             writeIORef stFileName (Just fileName)
+        ResponseCancel -> return ()
+        ResponseDeleteEvent -> return ()
+    widgetHide dialog
+
+onSave State{ stMap, stFileName } = do
+    fileName <- readIORef stFileName
+    case fileName of
+        Just f -> readIORef stMap >>= save f
+        Nothing -> return ()
+                     
+onOpen parentWin State{ stMap, stFileName, stMapWidget } = do
+    dialog <- fileChooserDialogNew (Just "Choose a file to open")
+                                   (Just parentWin)
+                                   FileChooserActionOpen
+                                   [ ("gtk-cancel", ResponseCancel)
+                                   , ("gtk-open", ResponseAccept)]
+
+    widgetShow dialog
+    response <- dialogRun dialog
+    case response of
+        ResponseAccept -> do Just fileName <- fileChooserGetFilename dialog
+                             map <- load fileName
+                             writeIORef stMap map
+                             writeIORef stFileName (Just fileName)
+                             widgetQueueDraw stMapWidget
+        ResponseCancel -> return ()
+        ResponseDeleteEvent -> return ()
+    widgetHide dialog
         
 -------------------------------------------------------------------------------
 -- Main
@@ -367,14 +413,16 @@ main = do
     historyState <- newIORef ([], [])
     currentLayerState <- newIORef 0
     mapWidgetState <- newIORef MapWidgetState { msMouseDown = False, msOldPos = (0, 0) }
+    fileName <- newIORef Nothing
     
-    pixbufs <- loadPixbufs M.empty ["test3.png"]
+    pixbufs <- loadPixbufs M.empty ["ts2.png"]
     pixbufState <- newIORef pixbufs
 
     let state = State { stTileset = tsState
                       , stLayer = currentLayerState
                       , stHistory = historyState
                       , stMap = mapState
+                      , stFileName = fileName
                       , stTilesetWidget = tilesetDraw
                       , stMapWidget = mapDraw
                       , stPixbufs = pixbufState
@@ -382,10 +430,6 @@ main = do
                       , stStatusLayer = statusLayer
                       , stStatusPos = statusPos
                       }
-
-    {-initMap >>= save "lolwut.map"-}
-    {-exitSuccess-}
-    load "lolwut.map" >>= writeIORef (stMap state)
 
     on mapDraw exposeEvent $ drawMap mapDraw state
     onButtonPress mapDraw $ onMapButtonPress mapDraw state
@@ -400,7 +444,16 @@ main = do
     onMotionNotify tilesetDraw True $ onTileSetMotion tilesetDraw state
 
     menuUndo <- xmlGetWidget xml castToMenuItem "menuundo"
-    onActivateLeaf menuUndo $ onUndo menuUndo state
+    onActivateLeaf menuUndo $ onUndo state
+
+    menuSaveAs <- xmlGetWidget xml castToMenuItem "menusaveas"
+    onActivateLeaf menuSaveAs $ onSaveAs window state
+
+    menuSave <- xmlGetWidget xml castToMenuItem "menusave"
+    onActivateLeaf menuSave $ onSave state
+
+    menuOpen <- xmlGetWidget xml castToMenuItem "menuopen"
+    onActivateLeaf menuOpen $ onOpen window state
 
     forM [1..4] $ \n -> do
         w <- xmlGetWidget xml castToMenuItem $ "menulayer"++show n
@@ -422,10 +475,10 @@ initMap = do
             return Layer { layerTileset = tileset, layerData = dat }
 
     undergroundDat <- newListArray layerDim (repeat $ Just (0, 0)) 
-    let layer0 = Layer { layerTileset = "test3.png", layerData = undergroundDat }
-    layer1 <- emptyLayer "test3.png"
-    layer2 <- emptyLayer "test3.png"
-    layer3 <- emptyLayer "test3.png"
+    let layer0 = Layer { layerTileset = "ts2.png", layerData = undergroundDat }
+    layer1 <- emptyLayer "ts2.png"
+    layer2 <- emptyLayer "ts2.png"
+    layer3 <- emptyLayer "ts2.png"
 
     layers <- newListArray (0, numLayers-1) [layer0,layer1,layer2,layer3]
 
