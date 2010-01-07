@@ -7,8 +7,8 @@ module Util
     , rectX, rectY
     , rectW, rectH
     , rectX2, rectY2
+    , (^+^), (^-^), (^*^), (^/^)
     , (^+), (^-), (^*)
-    , (^+^), (^-^), (^*^)
     , divPoint
     , px, py
     , pabs
@@ -55,6 +55,7 @@ mkRect (x, y) (w, h) = Rect x y w h
 infixl 6 ^+^
 infixl 6 ^-^
 infixl 7 ^*^
+infixl 7 ^/^
 
 (^+^) :: Point2 -> Point2 -> Point2
 (x1, y1) ^+^ (x2, y2) = (x1 + x2, y1 + y2)
@@ -64,6 +65,9 @@ infixl 7 ^*^
 
 (^*^) :: Point2 -> Point2 -> Point2
 (x1, y1) ^*^ (x2, y2) = (x1 * x2, y1 * y2)
+
+(^/^) :: Point2 -> Point2 -> Point2
+(x1, y1) ^/^ (x2, y2) = (x1 `div` x2, y1 `div` y2)
 
 infixl 6 ^+
 infixl 6 ^-
