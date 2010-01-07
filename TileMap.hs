@@ -2,6 +2,7 @@ module TileMap
     ( Tile
     , TileMap(..)
     , Layer(..)
+    , isTileSet
     , renderTileMap
     , tmWidth
     , tmHeight
@@ -47,7 +48,7 @@ testMap = TileMap { tmLayers = [ Layer { layerTileset = "ts.png"
                           | x <- [0..px tmSize], y <- [0..py tmSize]]
           tmSize = (20, 20)
 
-isTileSet layer p tm = isNothing $ (layerTiles $ tmLayers tm !! layer) ! p
+isTileSet layer p tm = isJust $ (layerTiles $ tmLayers tm !! layer) ! p
 
 -- Debugging
 renderGrid :: TileMap -> IO ()

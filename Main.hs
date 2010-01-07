@@ -48,7 +48,7 @@ processEvents = foldl' f
 
 debugEvents :: [Event] -> [String]
 debugEvents = filter (/= "") . map f
-    where f (Debug id str) = "Actor #" ++ (show id) ++ ": " ++ str
+    where f (Debug id str) = "Actor #" ++ show id ++ ": " ++ str
           f _ = ""
 
 getMessages :: [Event] -> [MessageRec]
@@ -226,7 +226,7 @@ main = do
     where actors = --addArrs 199 $
                    newEnemy (300, 50) +:
                    {-newEnemy (100, 30) +:-}
-                   newPlayer (100, 100) +: IL.empty
+                   newPlayer (50, 100) +: IL.empty
           arr n = newArrow (0, n * 20) 0 1 DirLeft 
           addArrs 0 il = il
           addArrs n il = arr n +: addArrs (n-1) il
