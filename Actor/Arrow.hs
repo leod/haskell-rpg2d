@@ -34,7 +34,7 @@ instance Actor Arrow where
               size DirUp = (5, 15)
               size DirDown = size DirUp
 
-    collision (id, actor) self = do
+    collision (id, _) self = do
         when (id /= owner self) $ do
             evMessage id (Impact 100 $ vel self)
             evRemoveSelf

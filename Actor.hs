@@ -4,7 +4,7 @@ module Actor
     ( Event(..)
     , input
     , tileMap
-    , evAddActor, evRemoveSelf, evMessage, evMoveCamera
+    , evAddActor, evRemoveSelf, evMessage, evMoveCamera, evDebug
     , selfId
     , Message(Impact)
     , MessageRec
@@ -39,6 +39,7 @@ data Event = AddActor AnyActor
            | RemoveActor ActorId
            | SendMessage MessageRec
            | MoveCamera Point2
+           | Debug ActorId String
     deriving Show
 
 -- Actors can send messages to each other, this is the only way in which they can influence each other
@@ -62,6 +63,9 @@ evMessage to msg = ask >>= \us -> event $ SendMessage $ MessageRec (usSelfId us)
 
 evMoveCamera :: MonadWriter [Event] m => Point2 -> m ()
 evMoveCamera = event . MoveCamera
+
+evDebug :: (MonadReader UpdateState m, MonadWriter [Event] m) => String -> m ()
+evDebug str = do id <- selfId; event $ Debug id str
 
 -- Reader state for actors when updating
 data UpdateState = UpdateState { usTileMap :: TileMap

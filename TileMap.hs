@@ -12,12 +12,16 @@ module TileMap
     ) where
 
 import Data.Array
+import Data.Maybe
 import Control.Monad
 
 import Util
 import Consts
 import Render
 import Graphics.Rendering.OpenGL.GL as GL
+
+undergroundLayer = 0
+foregroundLayer = 1
 
 type Tile = Maybe Point2
 data Layer = Layer { layerTileset :: String
@@ -27,25 +31,27 @@ data TileMap = TileMap { tmLayers :: [Layer]
                        , tmSize :: Point2
                        } deriving (Show, Read)
 
-testMap = TileMap { tmLayers = [ Layer { layerTileset = "test3.png"
+testMap = TileMap { tmLayers = [ Layer { layerTileset = "ts.png"
                                        , layerTiles = underground }
-                               , Layer { layerTileset = "test3.png"
+                               , Layer { layerTileset = "ts.png"
                                        , layerTiles = foreground }
                                ]
                   , tmSize = tmSize
                   }
     where underground = array ((0, 0), tmSize)
-                         [((x, y), Just (0, 0)) | x <- [0..px tmSize], y <- [0..py tmSize]]
+                         [((x, y), Just (0, 8)) | x <- [0..px tmSize], y <- [0..py tmSize]]
           foreground = array ((0, 0), tmSize)
-                         [((x, y), if x == 0 || y == 0 || x == px tmSize - 1 || y == py tmSize - 1
-                                       then Just (0, 5)
+                         [((x, y), if x == 0 || y == 0 || x == px tmSize - 1 || y == py tmSize - 1 || abs (10 - x) < 3 && abs (10 - y) < 3 || x == 7 && y == 5
+                                       then Just (29, 15)
                                        else Nothing)
                           | x <- [0..px tmSize], y <- [0..py tmSize]]
           tmSize = (20, 20)
 
+isTileSet layer p tm = isNothing $ (layerTiles $ tmLayers tm !! layer) ! p
+
 -- Debugging
 renderGrid :: TileMap -> IO ()
-renderGrid tm = withColor (GL.Color4 0 0 1 0.2) $ GL.renderPrimitive GL.Lines $ do
+renderGrid tm = withColor (GL.Color4 0 0 0 0.4) $ GL.renderPrimitive GL.Lines $ do
     forM_ [0 .. w] (\x -> do
        GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) (0 :: GLfloat)
        GL.vertex $ GL.Vertex2 (fromIntegral $ x*tileWidth) (fromIntegral $ h*tileHeight :: GLfloat))
